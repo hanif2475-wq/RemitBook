@@ -100,7 +100,8 @@ function archiveRender(){
   list.innerHTML='<div class="archive-row">'+months.filter(m=>!q||m.includes(q)||monthTitle(m).toLowerCase().includes(q.toLowerCase())).map(m=>`<button data-archive-month="${m}" class="${monthFilter===m?'archive-active':''}">${esc(monthTitle(m))} (${archiveRows(m).length})${m<cur?' ✓':''}</button>`).join('')+'</div>';
   const m=monthFilter||cur;const ws=db.windows.filter(w=>w.month===m).sort((a,b)=>a.index-b.index);const monthRows=archiveRows(m);const sum=totals(monthRows);
   segments.innerHTML=`<div class="archive-row"><b>${esc(monthTitle(m))}</b><span>${bn?'লেনদেন':'Transactions'}: ${monthRows.length} · ${moneyC(sum.q)} QAR / ${moneyC(sum.b)} BDT</span></div>`+
-   ws.map(w=>{const rows=monthRows.filter(r=>r.windowId===w.id),x=totals(rows);return `<div class="archive-row"><button data-segment="${esc(w.id)}" class="${selectedSegment===w.id?'archive-active':''}">${bn?'হিসাব':'Account'} ${w.index} · ${w.closed?(bn?'ক্লোজ':'Closed'):(bn?'চলমান':'Active')} (${rows.length})</button><span>${moneyC(x.q)} QAR · ${bn?'বাকি':'Due'} ${moneyC(x.due)} QAR</span>${w.closed?`<button class="segment-delete" data-delete-segment="${esc(w.id)}" title="${bn?'এই ক্লোজ হিসাব মুছুন':'Delete closed account'}">×</button>`:''}${!w.closed&&m===cur?`<button data-close-window="${esc(w.id)}">${bn?'হিসাব ক্লোজ':'Close account'}</button>`:''}${expandedClosedSegment===w.id?segmentDetailHTML(rows,bn):''}</div>`}).join('')+
+   ws.filter(w=>w.closed).map((w,closedPosition)=>{const rows=monthRows.filter(r=>r.windowId===w.id),x=totals(rows);return `<div class="archive-row"><button data-segment="${esc(w.id)}" class="${selectedSegment===w.id?'archive-active':''}">${bn?'হিসাব':'Account'} ${closedPosition+1} · ${bn?'ক্লোজ':'Closed'} (${rows.length})</button><span>${moneyC(x.q)} QAR · ${bn?'বাকি':'Due'} ${moneyC(x.due)} QAR</span>${w.closed?`<button class="segment-delete" data-delete-segment="${esc(w.id)}" title="${bn?'এই ক্লোজ হিসাব মুছুন':'Delete closed account'}">×</button>`:''}${!w.closed&&m===cur?`<button data-close-window="${esc(w.id)}">${bn?'হিসাব ক্লোজ':'Close account'}</button>`:''}${expandedClosedSegment===w.id?segmentDetailHTML(rows,bn):''}</div>`}).join('')+
+   (ws.some(w=>!w.closed)&&m===cur?`<div class="archive-row"><button data-close-window="${esc(ws.find(w=>!w.closed).id)}">${bn?'হিসাব ক্লোজ':'Close account'}</button></div>`:'')+
    (m<cur?`<div class="archive-row"><button data-backup-month="${m}">${bn?'এই মাসের JSON ব্যাকআপ':'Export month JSON'}</button><button data-delete-month="${m}" style="color:#a32323">${bn?'এই মাস ডিলিট':'Delete month'}</button></div>`:'');
  }
  draw();$('archiveSearch').oninput=e=>draw(e.target.value.trim());
@@ -308,8 +309,8 @@ load();initWindows();syncMonthClosures();windowFor(today());save();monthFilter=m
 .toolbar>.field:has(#monthFilter){margin-left:auto;max-width:185px;min-width:135px}
 .toolbar #monthFilter{width:100%;max-width:185px}
 .compact-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:end;padding:8px 12px}
-.compact-filters .field{flex:0 1 185px;min-width:125px;margin:0}
-.compact-filters input{max-width:185px;width:100%}
+.compact-filters .field{flex:1 1 240px;min-width:155px;margin:0}
+.compact-filters input{max-width:none;width:100%;box-sizing:border-box}
 .compact-filters button{align-self:end}
 .summary-container{display:flex;align-items:center;gap:6px;background:#edf4fa;border-bottom:1px solid #c9d4dd;padding-right:8px}
 .summary-container .summary{flex:1;min-width:0;border:0;background:transparent}
@@ -329,4 +330,23 @@ load();initWindows();syncMonthClosures();windowFor(today());save();monthFilter=m
 .toolbar .field input,.toolbar #monthFilter{box-sizing:border-box;min-width:0!important;width:100%!important;max-width:none!important}
 .toolbar #addTop{min-width:0;width:100%;white-space:normal;line-height:1.15;padding:8px 4px;font-size:clamp(11px,2.8vw,16px)}
 @media(max-width:420px){.toolbar{gap:4px;padding:8px 6px}.toolbar .field{font-size:10px}.toolbar .field input{font-size:13px;padding:3px}.toolbar #addTop{font-size:12px}}
+
+/* Compact top row: prevent the add button from overlapping the date input. */
+.toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:end;gap:8px}
+.toolbar>.field{min-width:0}
+.toolbar>.field input{width:100%;min-width:0;box-sizing:border-box}
+.toolbar #addTop{font-size:12px;padding:8px 7px;max-width:100%;white-space:normal;line-height:1.25;align-self:end}
+@media(max-width:540px){.toolbar{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) minmax(0,1fr);gap:5px;padding:8px 6px}.toolbar #addTop{font-size:11px;padding:7px 3px}.toolbar .field{font-size:10px}.toolbar .field input{font-size:13px;padding:3px 2px}}
+</style><style id="layout-fix-20261120">
+/* Keep the three top controls separate without covering either date field. */
+.toolbar{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(0,.88fr) minmax(0,1.15fr)!important;gap:8px!important;align-items:end!important}
+.toolbar>#addTop{width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;font-size:11px!important;line-height:1.2!important;padding:7px 2px!important;white-space:normal!important;overflow-wrap:normal!important}
+.toolbar>.field,.toolbar>.field:has(#monthFilter){min-width:0!important;max-width:none!important;width:100%!important;margin:0!important}
+.toolbar .field input{min-width:0!important;width:100%!important;box-sizing:border-box!important}
+/* Make date search shorter, give the All Dates control more room. */
+.compact-filters{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)!important;gap:12px!important;align-items:end!important}
+.compact-filters>.field{min-width:0!important;max-width:none!important;width:100%!important;justify-self:center!important}
+.compact-filters #dateFilter{width:100%!important;min-width:0!important;box-sizing:border-box!important}
+.compact-filters #showAll{min-width:0!important;width:100%!important;box-sizing:border-box!important;justify-self:stretch!important}
+@media(max-width:540px){.toolbar{gap:5px!important;padding:8px 6px!important}.toolbar>#addTop{font-size:10px!important;padding:6px 2px!important}.compact-filters{gap:8px!important}}
 </style></body></html>
