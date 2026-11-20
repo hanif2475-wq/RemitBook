@@ -361,6 +361,26 @@ window.addEventListener('beforeprint',preparePrintCellMirrors);
 window.addEventListener('afterprint',clearPrintCellMirrors);
 $('print').onclick=()=>{document.activeElement?.blur?.();window.print()};
 
+// PNG-only white logo watermark. PDF and the on-screen app remain unchanged.
+async function addPngWhiteWatermark(host){
+ const panel=host.firstElementChild;
+ const src=document.querySelector('header img.appicon')?.src||document.querySelector('header img')?.src;
+ if(!panel||!src)return;
+ panel.style.position='relative';
+ panel.style.isolation='isolate';
+ const mark=document.createElement('img');
+ mark.src=src;
+ mark.alt='';
+ mark.setAttribute('aria-hidden','true');
+ mark.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:72%;max-height:75%;object-fit:contain;opacity:.11;filter:brightness(0) invert(1);pointer-events:none;z-index:0;';
+ panel.prepend(mark);
+ for(const child of Array.from(panel.children)){
+  if(child===mark)continue;
+  child.style.position='relative';child.style.zIndex='1';
+ }
+ try{await mark.decode()}catch(e){}
+}
+
 // Export exactly the currently filtered summary, using the same totals calculation as the screen.
 $('summaryPng').onclick=async()=>{
  const btn=$('summaryPng');let host;
@@ -381,7 +401,7 @@ $('summaryPng').onclick=async()=>{
   ${dateRangeLine}
   ${line(t.transactions,String(a.length))}${line(t.total,moneyC(x.q)+' QAR')}${line(t.total,moneyC(x.b)+' BDT')}${line(t.collected,moneyC(x.collected)+' QAR')}${line(t.due,moneyC(x.due)+' QAR')}${line(t.cash,moneyC(x.cashQ)+' QAR')}${line(t.creditRows,moneyC(x.creditQ)+' QAR')}
   <div style="font-size:24px;font-weight:800;color:#e8ca78;padding-top:20px">${esc(t.channel)}</div>${channels.map((v,i)=>{let z=totals(a.filter(r=>r.type===v));return line(t.channels[i],moneyC(z.q)+' QAR / '+moneyC(z.b)+' BDT')}).join('')}</div>`;
-  document.body.appendChild(host);await document.fonts.ready;
+  document.body.appendChild(host);await document.fonts.ready;await addPngWhiteWatermark(host);
   const canvas=await html2canvas(host,{scale:2,backgroundColor:'#102b43',useCORS:true,logging:false});
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw Error('PNG');
   const name=exportFilename('summary-'+(dateFilter||monthFilter||today()),'png');
@@ -461,7 +481,7 @@ async function makePNG(id){
    [bn?'রেফারেন্স':'Reference',r.ref||'—'],
    [bn?'নোট':'Note',r.note||'—']
   ];
-  const row=(label,value)=>`<div style="display:flex;align-items:baseline;gap:10px;padding:9px 0;font-size:20px;line-height:1.5;background:#102b43;white-space:normal"><span style="color:#e4dfd1;flex:none">${esc(label)} :</span><strong style="color:#fff8df;font-weight:700;overflow-wrap:anywhere">${esc(value??'—')}</strong></div>`;
+  const row=(label,value)=>`<div style="display:flex;align-items:baseline;gap:10px;padding:9px 0;font-size:20px;line-height:1.5;background:transparent;white-space:normal"><span style="color:#e4dfd1;flex:none">${esc(label)} :</span><strong style="color:#fff8df;font-weight:700;overflow-wrap:anywhere">${esc(value??'—')}</strong></div>`;
   host=document.createElement('div');
   host.style.cssText='position:fixed;left:-12000px;top:0;width:900px;padding:0;background:#102b43;font-family:Arial,"Noto Sans Bengali",sans-serif;color:#f8f0d5;text-shadow:none;';
   host.innerHTML=`<div style="padding:28px;background:#102b43"><div style="border:2px solid #c9a957;border-radius:24px;padding:28px 34px 22px;background:#102b43;box-shadow:none;text-shadow:none">
@@ -481,7 +501,7 @@ async function makePNG(id){
    </section>
    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;padding-top:13px;border-top:1px solid rgba(201,169,87,.45);font-size:13px;color:#cbb77e"><span>${bn?'সংরক্ষিত হিসাবের কপি':'SAVED TRANSACTION COPY'}</span><span>${esc(r.date)} · #${esc(r.txn)}</span></div>
   </div></div>`;
-  document.body.appendChild(host);await document.fonts.ready;
+  document.body.appendChild(host);await document.fonts.ready;await addPngWhiteWatermark(host);
   const canvas=await html2canvas(host,{scale:2,backgroundColor:'#102b43',useCORS:true,logging:false});
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
   if(!blob)throw new Error('PNG canvas export failed');
