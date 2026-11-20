@@ -467,8 +467,8 @@ async function makePNG(id){
   host.innerHTML=`<div style="padding:28px;background:#102b43"><div style="border:2px solid #c9a957;border-radius:24px;padding:28px 34px 22px;background:#102b43;box-shadow:none;text-shadow:none">
    <div style="display:flex;align-items:center;gap:20px;padding-bottom:20px;border-bottom:2px solid #b99a53">
     <img src="${logo}" style="width:76px;height:76px;object-fit:contain;border-radius:16px;background:transparent;padding:4px;flex:none">
-    <div style="flex:1"><div style="font-size:34px;font-weight:800;color:#f5e7bd;line-height:1.35">${bn?'দৈনিক লেনদেন হিসাব':'Daily Transaction Ledger'}</div><div style="font-size:16px;letter-spacing:3px;color:#cbb77e;margin-top:6px">${esc((localStorage.getItem(EXPORT_NAME_KEY)||'').trim()||(bn?'লেনদেনের বিবরণী':'TRANSACTION STATEMENT'))}</div></div>
-    <div style="font-size:25px;font-weight:800;color:#f4d98d;flex:none">#${esc(serial||r.txn)}</div>
+    <div style="flex:1"><div style="font-size:34px;font-weight:800;color:#f5e7bd;line-height:1.35">${bn?'দৈনিক লেনদেন হিসাব':'Daily Transaction Ledger'}</div><div style="font-size:21px;font-weight:800;letter-spacing:0;color:#e8ca78;margin-top:6px;line-height:1.4">${esc((localStorage.getItem(EXPORT_NAME_KEY)||'').trim()||(bn?'লেনদেনের বিবরণী':'TRANSACTION STATEMENT'))}</div></div>
+    
    </div>
    <section style="padding-top:22px"><div style="font-size:25px;font-weight:800;color:#e8ca78;margin-bottom:8px">${bn?'টাকার হিসাব':'AMOUNT SUMMARY'}</div>
     ${row(bn?'মোট টাকা (QAR)':'Total amount (QAR)',money(r.qar))}
@@ -550,5 +550,37 @@ load();initWindows();syncMonthClosures();windowFor(today());save();monthFilter=m
  #sheet th:nth-child(11),#sheet td:nth-child(11){width:9%!important}
  #sheet th:nth-child(12),#sheet td:nth-child(12){width:8%!important}
 }
+</style>
+
+<!-- Print-only faint central logo watermark, sourced from the existing app logo. -->
+<img id="printLogoWatermark" alt="" aria-hidden="true" style="display:none" />
+<script>
+(function(){
+  const logo=document.querySelector('header img.appicon');
+  const watermark=document.getElementById('printLogoWatermark');
+  if(logo&&watermark) watermark.src=logo.currentSrc||logo.src;
+})();
+</script>
+<style id="f4-print-logo-watermark">
+@media print {
+  @page { size: 210mm 330mm; margin: 9mm 8mm; }
+  #printLogoWatermark {
+    display:block!important;
+    position:fixed!important;
+    left:50%!important;
+    top:50%!important;
+    transform:translate(-50%,-50%)!important;
+    width:115mm!important;
+    height:115mm!important;
+    object-fit:contain!important;
+    opacity:0.075!important;
+    pointer-events:none!important;
+    z-index:0!important;
+  }
+  body > *:not(#printLogoWatermark):not(script):not(style) { position:relative; z-index:1; }
+  #sheet tbody td { background:transparent!important; }
+  #sheet tbody tr:nth-child(even) { background:transparent!important; }
+}
+@media screen { #printLogoWatermark {display:none!important;} }
 </style>
 </body></html>
