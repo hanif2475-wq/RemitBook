@@ -26,7 +26,7 @@
  tr{break-inside:avoid!important;page-break-inside:avoid!important}
 } .ledger-extra-actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.ledger-extra-actions button,.bulk-panel button{padding:9px 12px;border:1px solid #b6c3d0;border-radius:7px;background:#f4f7fa;color:#17344c;font-weight:650}.bulk-panel{border:1px solid #cbd5e1;border-radius:9px;padding:14px;margin:10px 0;background:#f8fafc}.bulk-panel .bulk-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #e2e8f0}.bulk-panel .bulk-row input{width:19px;height:19px}.bulk-panel .bulk-buttons{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.bulk-panel input[type=number]{max-width:180px;padding:8px;font-size:16px}@media print{.ledger-extra-actions,.bulk-panel{display:none!important}} 
 /* Only the All dates button height */
-#showAll{height:48px;box-sizing:border-box;position:relative;left:16px;padding-left:18px;padding-right:22px;}
+#showAll{height:48px;box-sizing:border-box;position:relative;left:12px;padding-left:29px;padding-right:33px;}
 /* bulkOpen height only */
 #bulkOpen{height:48px;box-sizing:border-box;}
 </style><style id="accountManagerStyle">.account-manager{margin:10px 0 14px;border:1px solid #c9d4dd;border-radius:10px;background:#f5f9fc}.account-manager>summary{padding:11px 14px;font-weight:700;color:#173b56;cursor:pointer;list-style-position:inside;user-select:none}.account-manager[open]>summary{border-bottom:1px solid #dbe4eb}.account-manager .month-archive{margin:10px}.account-manager .ledger-extra-actions{padding:0 10px 10px}.account-manager #bulkPanel{margin:0 10px 10px}@media print{.account-manager{display:none!important}}</style><style id="requested-minimal-fixes">
@@ -249,8 +249,18 @@ if(window.visualViewport){
   });
 }
 // Save each keystroke so a partially completed row is not lost.
-$('rows').addEventListener('input',e=>{let el=e.target,id=Number(el.dataset.id),k=el.dataset.key;if(!id||!k)return;let r=db.rows.find(x=>x.id===id);if(!r)return;r[k]=el.value;if(k==='mobile')r.option=el.value;save()});
-$('rows').addEventListener('change',e=>{let el=e.target,id=Number(el.dataset.id),k=el.dataset.key;if(!id||!k)return;let r=db.rows.find(x=>x.id===id);if(!r)return;r[k]=el.value;if(k==='mobile')r.option=el.value;save();renderSummary(filtered())});$('rows').addEventListener('click',e=>{let b=e.target.closest('[data-del]');if(b&&confirm(T[lang].deleteConfirm)){db.rows=db.rows.filter(r=>r.id!==Number(b.dataset.del));db.collections=(db.collections||[]).map(c=>({...c,allocations:c.allocations.filter(a=>db.rows.some(r=>r.id===a.id))})).filter(c=>c.allocations.length);normalizeAllTransactions();save();render()}});
+// Validate monetary edits before committing them; never silently rewrite existing collections.
+function validLedgerEdit(r,k,value){
+ if(k==='qar'||k==='bdt'){
+  const raw=String(value).trim();
+  if(raw!==''&&(!/^(?:\d+)(?:\.\d{0,2})?$/.test(raw)||!Number.isFinite(Number(raw))||cents(raw)>Number.MAX_SAFE_INTEGER))return false;
+  if(k==='qar'&&r.status==='বাকি'&&cents(value)<Math.max(0,cents(r.collected)))return false;
+ }
+ if(k==='status'&&value==='নগদ'&&r.status==='বাকি'&&((db.collections||[]).some(c=>(c.allocations||[]).some(a=>a.id===r.id&&a.cents>0))||cents(r.collected)>0))return false;
+ return true;
+}
+$('rows').addEventListener('input',e=>{let el=e.target,id=Number(el.dataset.id),k=el.dataset.key;if(!id||!k)return;let r=db.rows.find(x=>x.id===id);if(!r)return;if(!validLedgerEdit(r,k,el.value))return;r[k]=el.value;if(k==='mobile')r.option=el.value;save()});
+$('rows').addEventListener('change',e=>{let el=e.target,id=Number(el.dataset.id),k=el.dataset.key;if(!id||!k)return;let r=db.rows.find(x=>x.id===id);if(!r)return;if(!validLedgerEdit(r,k,el.value)){alert(lang==='bn'?'সঠিক পরিমাণ লিখুন। আদায়ের চেয়ে মূল টাকা কমানো বা আদায়ের ইতিহাস থাকা বাকি লেনদেন নগদ করা যাবে না।':'Invalid amount or collection history conflict.');el.value=r[k];return}r[k]=el.value;if(k==='mobile')r.option=el.value;save();renderSummary(filtered())});$('rows').addEventListener('click',e=>{let b=e.target.closest('[data-del]');if(b&&confirm(T[lang].deleteConfirm)){db.rows=db.rows.filter(r=>r.id!==Number(b.dataset.del));db.collections=(db.collections||[]).map(c=>({...c,allocations:c.allocations.filter(a=>db.rows.some(r=>r.id===a.id))})).filter(c=>c.allocations.length);normalizeAllTransactions();save();render()}});
 // Drag a column edge to resize it; saved locally.
 let drag=null;$('head').addEventListener('pointerdown',e=>{let h=e.target.closest('[data-resize]');if(!h)return;let i=Number(h.dataset.resize);drag={i,x:e.clientX,w:widths[i]};h.setPointerCapture?.(e.pointerId);e.preventDefault()});$('head').addEventListener('pointermove',e=>{if(!drag)return;let w=Math.max(55,Math.min(500,drag.w+(e.clientX-drag.x)));widths[drag.i]=w;$('cols').children[drag.i].style.width=w+'px'});$('head').addEventListener('pointerup',()=>{if(!drag)return;localStorage.setItem(WIDTHKEY,JSON.stringify(widths));drag=null});$('head').addEventListener('pointercancel',()=>{if(drag){localStorage.setItem(WIDTHKEY,JSON.stringify(widths));drag=null}});
 $('backup').onclick=()=>{const payload={app:'daily-ledger',version:1,exportedAt:new Date().toISOString(),groups:db.groups,rows:db.rows,nextId:db.nextId,windows:db.windows||[],collections:db.collections||[]};let blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='daily-ledger-backup-'+today()+'.json';a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)};$('allClear').onclick=()=>{let msg=lang==='bn'?'সতর্কতা: সব দিনের সব লেনদেন স্থায়ীভাবে মুছে যাবে। আগে ব্যাকআপ নিয়েছেন কি? আপনি কি নিশ্চিত?':'Warning: All transactions for every date will be permanently deleted. Have you made a backup? Are you sure?';if(!confirm(msg))return;db={groups:[],rows:[],nextId:1,windows:[],collections:[]};dateFilter='';monthFilter='';$('dateFilter').value='';$('monthFilter').value='';save();render()};$('restore').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let x=JSON.parse(await f.text());if(!Array.isArray(x.groups)||!Array.isArray(x.rows))throw 0;if(confirm(T[lang].backupReplace)){db=x;db.nextId=db.nextId||Math.max(0,...db.rows.map(r=>r.id||0))+1;db.rows.forEach(r=>{if(r.mobile===undefined)r.mobile=r.option||''});normalizeAllTransactions();initWindows();syncMonthClosures();save();render();alert(T[lang].restored)}}catch(_){alert(T[lang].badBackup)}e.target.value=''};async function loadExternalScript(src){return new Promise((resolve,reject)=>{if(document.querySelector('script[data-src="'+src+'"]')){resolve();return}const s=document.createElement('script');s.src=src;s.async=true;s.dataset.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s)})}
@@ -300,6 +310,7 @@ function openBulk(){
   const chosen=ids.map(id=>db.rows.find(r=>r.id===id)).filter(r=>r&&r.status==='বাকি');
   const due=chosen.reduce((v,r)=>v+Math.max(0,cents(r.qar)-Math.max(0,cents(r.collected))),0);
   const raw=$('bulkAmount').value;
+  if(!full&&(!/^\d+(?:\.\d{1,2})?$/.test(raw.trim())||!Number.isFinite(Number(raw))||cents(raw)>Number.MAX_SAFE_INTEGER)){alert(bn?'সঠিক আদায়ের পরিমাণ লিখুন।':'Enter a valid collection amount.');return}
   const amount=full?due:(raw.trim()!==''?cents(raw):0);
   if(amount<=0||amount>due){alert(bn?'আদায়ের টাকা শূন্যের বেশি এবং নির্বাচিত মোট বাকির সমান বা কম হতে হবে।':'Amount must be positive and no greater than selected dues.');return}
   if(!confirm((bn?'মোট ':'Collect ')+moneyC(amount)+' QAR'+(bn?' আদায় হিসেবে সংরক্ষণ করবেন?':' for selected transactions?')))return;
@@ -321,7 +332,7 @@ function openCollection(rowId){
  const inputs=[...panel.querySelectorAll('input')];const preview=()=>{const total=inputs.reduce((v,el)=>v+Math.max(0,cents(el.value)),0);if($('collectionPreview'))$('collectionPreview').textContent=moneyC(total)+' QAR';};inputs.forEach(el=>el.oninput=preview);preview();
  $('collectionSave').onclick=()=>{
   if(r.status==='নগদ'){panel.classList.add('hidden');return}
-  if(inputs.some(el=>!Number.isFinite(Number(el.value))||Number(el.value)<0)){alert(bn?'সঠিক পরিমাণ লিখুন':'Enter valid amounts');return}
+  if(inputs.some(el=>!/^\d+(?:\.\d{0,2})?$/.test(el.value.trim())||!Number.isFinite(Number(el.value))||cents(el.value)>Number.MAX_SAFE_INTEGER)){alert(bn?'সঠিক পরিমাণ লিখুন':'Enter valid amounts');return}
   const directNew=cents($('directCollected').value);const edits=histories.map(h=>({h,value:cents(panel.querySelector(`[data-batch="${h.c.id}"]`).value)}));
   const total=directNew+edits.reduce((v,e)=>v+e.value,0);
   if(total>Math.max(0,cents(r.qar))){alert(bn?'আদায় মোট লেনদেনের টাকার বেশি হতে পারে না।':'Collected cannot exceed transaction amount.');return}
