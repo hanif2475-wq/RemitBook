@@ -363,7 +363,11 @@ $('print').onclick=()=>{document.activeElement?.blur?.();window.print()};
 
 // PNG-only white logo watermark. PDF and the on-screen app remain unchanged.
 async function addPngWhiteWatermark(host){
- const panel=host.firstElementChild;
+ const outer=host.firstElementChild;
+ // The individual PNG has two nested opaque navy panels. Place the watermark
+ // inside the innermost one, otherwise the navy background covers the logo.
+ const panel=outer?.firstElementChild?.matches?.('div[style*="border:2px solid"]')
+   ? outer.firstElementChild : outer;
  const src=document.querySelector('header img.appicon')?.src||document.querySelector('header img')?.src;
  if(!panel||!src)return;
  panel.style.position='relative';
@@ -372,7 +376,7 @@ async function addPngWhiteWatermark(host){
  mark.src=src;
  mark.alt='';
  mark.setAttribute('aria-hidden','true');
- mark.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:72%;max-height:75%;object-fit:contain;opacity:.11;filter:brightness(0) invert(1);pointer-events:none;z-index:0;';
+ mark.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:72%;height:72%;object-fit:contain;opacity:.13;filter:brightness(0) invert(1);pointer-events:none;z-index:0;';
  panel.prepend(mark);
  for(const child of Array.from(panel.children)){
   if(child===mark)continue;
@@ -583,15 +587,15 @@ load();initWindows();syncMonthClosures();windowFor(today());save();monthFilter=m
 </script>
 <style id="f4-print-logo-watermark">
 @media print {
-  @page { size: 210mm 330mm; margin: 9mm 8mm; }
+  @page { size: A4 portrait; margin: 9mm 8mm; }
   #printLogoWatermark {
     display:block!important;
     position:fixed!important;
-    left:50%!important;
-    top:50%!important;
+    left:50vw!important;
+    top:50vh!important;
     transform:translate(-50%,-50%)!important;
-    width:115mm!important;
-    height:115mm!important;
+    width:105mm!important;
+    height:105mm!important;
     object-fit:contain!important;
     opacity:0.075!important;
     pointer-events:none!important;
