@@ -494,114 +494,27 @@ async function makePNG(id){
 $('rows').addEventListener('click',e=>{const b=e.target.closest('[data-png]');if(b){makePNG(b.dataset.png)}});
 load();initWindows();syncMonthClosures();windowFor(today());save();monthFilter=monthOf(today());$('monthFilter').value=monthFilter;applyLanguage();
 })();
-</script><script id="direct-landscape-pdf">
-/* Offline A4 landscape PDF export; leaves ledger calculations and UI untouched. */
+</script>
+<style id="print-brand-name-style">
+#printSavedName{display:none}
+@media print{
+ #printSavedName:not(:empty){display:block!important;font-size:11px;font-weight:700;color:#183b56;margin-top:3px;}
+ header .brand{display:flex!important;align-items:center!important;gap:10px!important}
+ header .appicon{display:inline-block!important;max-width:55px!important;max-height:55px!important;object-fit:contain!important}
+}
+</style>
+<script id="print-original-design-restored">
 (function(){
- const btn=document.getElementById('print'); if(!btn)return;
- const A4W=842,A4H=595,scale=2;
- function cellText(el){
-  const fields=[...el.querySelectorAll('input,select,textarea')].filter(x=>!['hidden','checkbox','radio'].includes(x.type));
-  if(fields.length)return fields.map(x=>x.tagName==='SELECT'?(x.selectedOptions[0]?.textContent||''):(x.value||'')).join(' ').trim();
-  return (el.innerText||el.textContent||'').replace(/\s+/g,' ').trim();
- }
- function wrap(ctx,str,maxW){
-  const lines=[]; let line='';
-  for(const word of String(str||'').split(/\s+/)){
-   if(!word)continue;
-   let candidate=line?line+' '+word:word;
-   if(ctx.measureText(candidate).width<=maxW){line=candidate;continue;}
-   if(line){lines.push(line);line='';}
-   let part='';
-   for(const ch of word){if(part&&ctx.measureText(part+ch).width>maxW){lines.push(part);part='';}part+=ch;}
-   line=part;
-  }
-  if(line)lines.push(line);
-  return lines.length?lines:[''];
- }
- function drawPdfPages(){
-  const table=document.getElementById('sheet');
-  const head=[...table.querySelectorAll('thead th')];
-  const allRows=[...table.querySelectorAll('tbody tr')].filter(r=>getComputedStyle(r).display!=='none'&&!r.classList.contains('hidden'));
-  const skip= head.map((th,i)=>/^(?:অ্যাকশন|action|actions|মুছুন|delete)$/i.test(cellText(th))||th.dataset.col==='12'||th.dataset.col==='13'?i:-1).filter(i=>i>=0);
-  const indices=head.map((_,i)=>i).filter(i=>!skip.includes(i));
-  const headers=indices.map(i=>cellText(head[i]));
-  const weights=indices.map(i=>{let h=headers[indices.indexOf(i)].toLowerCase();if(/মোবাইল|phone|mobile/.test(h))return 1.65;if(/নাম|name/.test(h))return 1.75;if(/নোট|note/.test(h))return 1.45;if(/তারিখ|date/.test(h))return 1.35;if(/রেফারেন্স|reference/.test(h))return 1.3;if(/পরিমাণ|amount/.test(h))return 1.15;return 0.95;});
-  const usable=814,unit=usable/weights.reduce((a,b)=>a+b,0), widths=weights.map(w=>w*unit);
-  const pages=[];let canvas,ctx,y,pageNo=0;
-  const font='Arial,"Noto Sans Bengali","Hind Siliguri",sans-serif';
-  function textLines(t,x,top,w,sz=8,color='#142b3d',bold=false,lh=11){
-   ctx.font=(bold?'bold ':'')+sz+'px '+font;ctx.fillStyle=color;
-   const ls=wrap(ctx,t,w-8);ls.forEach((line,i)=>ctx.fillText(line,x+4,top+sz+i*lh));return ls.length*lh;
-  }
-  function begin(){
-   canvas=document.createElement('canvas');canvas.width=A4W*scale;canvas.height=A4H*scale;
-   ctx=canvas.getContext('2d',{alpha:false});ctx.scale(scale,scale);ctx.fillStyle='#fff';ctx.fillRect(0,0,A4W,A4H);
-   pageNo++; y=16;
-   ctx.fillStyle='#153a58';ctx.font='bold 17px '+font;ctx.fillText(document.querySelector('header .brand')?.innerText?.trim().split('\n')[0]||'দৈনিক লেনদেন হিসাব',14,y+15);y+=27;
-   if(pageNo===1){
-    for(const id of ['summary','report']){
-     const el=document.getElementById(id);if(!el||el.classList.contains('hidden'))continue;
-     const summary=(el.innerText||'').replace(/\s+/g,' ').trim();if(!summary)continue;
-     ctx.font='9px '+font;
-     for(const ln of wrap(ctx,summary,810)){ctx.fillStyle='#1c3348';ctx.fillText(ln,15,y+9);y+=13;}
-     y+=5;
-    }
-   }
-   ctx.font='bold 8px '+font;
-   const headerLines=headers.map((h,i)=>wrap(ctx,h,widths[i]-8));
-   const hh=Math.max(28,...headerLines.map(x=>x.length*10+8));
-   let x=14;headers.forEach((h,i)=>{ctx.fillStyle='#dce9f1';ctx.fillRect(x,y,widths[i],hh);ctx.strokeStyle='#8a9aa5';ctx.strokeRect(x,y,widths[i],hh);textLines(h,x,y+4,widths[i],8,'#1a3448',true,10);x+=widths[i];});y+=hh;
-  }
-  function finish(){
-   ctx.font='8px Arial';ctx.fillStyle='#677988';ctx.fillText('Page '+pageNo,770,583);
-   pages.push(canvas.toDataURL('image/jpeg',0.90).split(',')[1]);
-  }
-  begin();
-  for(const row of allRows){
-   const cells=[...row.children];
-   const values=indices.map(i=>cells[i]?cellText(cells[i]):'');
-   ctx.font='8px '+font;
-   const lines=values.map((v,i)=>wrap(ctx,v,widths[i]-8));
-   const rh=Math.max(27,...lines.map(l=>l.length*11+8));
-   if(y+rh>563&&y>100){finish();begin();}
-   let x=14;
-   values.forEach((v,i)=>{ctx.fillStyle=pageNo%2===0?'#fff':'#f8fafc';ctx.fillRect(x,y,widths[i],rh);ctx.strokeStyle='#a1acb5';ctx.strokeRect(x,y,widths[i],rh);textLines(v,x,y+4,widths[i],8,'#182b3b',false,11);x+=widths[i];});
-   y+=rh;
-  }
-  finish();return pages;
- }
- function assemblePdf(images){
-  const enc=new TextEncoder(), parts=[], offsets=[0];let total=0;
-  function add(v){const b=typeof v==='string'?enc.encode(v):v;parts.push(b);total+=b.length;}
-  add('%PDF-1.4\n');
-  const objs=[];function obj(content){objs.push(content);return objs.length;}
-  const catalog=obj(''),pages=obj('');
-  const entries=images.map((base64,i)=>{
-   const binary=atob(base64),bytes=new Uint8Array(binary.length);
-   for(let k=0;k<binary.length;k++)bytes[k]=binary.charCodeAt(k);
-   const image=obj({dict:`<< /Type /XObject /Subtype /Image /Width ${A4W*scale} /Height ${A4H*scale} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>`,stream:bytes});
-   const command=`q ${A4W} 0 0 ${A4H} 0 0 cm /Im${i} Do Q\n`;
-   const content=obj({dict:`<< /Length ${enc.encode(command).length} >>`,stream:enc.encode(command)});
-   const page=obj(`<< /Type /Page /Parent ${pages} 0 R /MediaBox [0 0 ${A4W} ${A4H}] /Resources << /XObject << /Im${i} ${image} 0 R >> >> /Contents ${content} 0 R >>`);
-   return page;
-  });
-  objs[catalog-1]=`<< /Type /Catalog /Pages ${pages} 0 R >>`;
-  objs[pages-1]=`<< /Type /Pages /Kids [${entries.map(i=>i+' 0 R').join(' ')}] /Count ${entries.length} >>`;
-  objs.forEach((o,i)=>{offsets.push(total);add(`${i+1} 0 obj\n`);if(typeof o==='string')add(o+'\n');else{add(o.dict+'\nstream\n');add(o.stream);add('\nendstream\n');}add('endobj\n');});
-  const xref=total;add(`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`);
-  for(let i=1;i<offsets.length;i++)add(String(offsets[i]).padStart(10,'0')+' 00000 n \n');
-  add(`trailer\n<< /Size ${objs.length+1} /Root ${catalog} 0 R >>\nstartxref\n${xref}\n%%EOF`);
-  return new Blob(parts,{type:'application/pdf'});
- }
- btn.onclick=async function(){
-  document.activeElement?.blur?.();btn.disabled=true;
-  try{
-   await document.fonts?.ready;
-   const blob=assemblePdf(drawPdfPages());
-   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='দৈনিক লেনদেন শিট.pdf';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-  }catch(e){console.error('PDF export failed',e);alert('PDF তৈরি করা যায়নি। প্রিন্ট অপশন খোলা হচ্ছে।');window.print();}
-  finally{btn.disabled=false;}
- };
+ const button=document.getElementById('print');
+ const brand=document.querySelector('header .brand');
+ if(!button||!brand)return;
+ const label=document.createElement('span');label.id='printSavedName';
+ brand.appendChild(label);
+ button.addEventListener('click',function(){
+  const saved=(localStorage.getItem('dailyLedger_exportBaseName_v1')||'').trim();
+  label.textContent=saved;
+ },true);
+ // The existing print button invokes the browser print sheet without a download step.
 })();
 </script>
 </body></html>
