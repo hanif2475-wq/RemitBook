@@ -159,25 +159,48 @@ function applyLanguage(){$('accountManagerTitle').textContent=lang==='bn'?'рж╣рж
 $('language').value=lang;$('language').onchange=e=>{lang=e.target.value;localStorage.setItem(LANGKEY,lang);applyLanguage()};$('workDate').value=today();$('addTop').onclick=()=>addRow($('workDate').value);$('addBottom').onclick=()=>addRow($('workDate').value);$('dateFilter').onchange=e=>{dateFilter=e.target.value;monthFilter='';selectedSegment='';$('monthFilter').value='';render()};$('monthFilter').onchange=e=>{monthFilter=e.target.value;dateFilter='';selectedSegment='';$('dateFilter').value='';render()};$('showAll').onclick=()=>{dateFilter=monthFilter=selectedSegment='';$('dateFilter').value='';$('monthFilter').value='';render()};
 // Stable iPhone keyboard handling: avoid repeated smooth scrolling that makes the row jump.
 let activeCell=null,revealTimer=null;
+// Keep the edited row above the iPhone keyboard without changing the table layout.
+const keyboardSpacer=document.createElement('div');
+keyboardSpacer.id='ledgerKeyboardSpacer';
+keyboardSpacer.style.cssText='height:0;pointer-events:none;flex:none';
+const addbar=document.querySelector('.addbar');
+addbar.parentNode.insertBefore(keyboardSpacer,addbar);
+function keyboardHeight(){
+  const vv=window.visualViewport;
+  return vv?Math.max(0,window.innerHeight-vv.height-vv.offsetTop):0;
+}
 function revealActiveCell(){
   if(!activeCell||!activeCell.isConnected||document.activeElement!==activeCell)return;
   const vv=window.visualViewport;
-  const visibleTop=vv?vv.offsetTop:0;
-  const visibleBottom=vv?(vv.offsetTop+vv.height):window.innerHeight;
+  const top=vv?vv.offsetTop:0;
+  const bottom=vv?vv.offsetTop+vv.height:window.innerHeight;
+  // Extra scrollable space is necessary for the final rows above the keyboard.
+  const kb=keyboardHeight();
+  keyboardSpacer.style.height=(kb>90?Math.max(220,kb+100):220)+'px';
   const rect=activeCell.getBoundingClientRect();
-  const marginTop=14,marginBottom=22;
-  let delta=0;
-  if(rect.bottom>visibleBottom-marginBottom) delta=rect.bottom-(visibleBottom-marginBottom);
-  else if(rect.top<visibleTop+marginTop) delta=rect.top-(visibleTop+marginTop);
-  if(Math.abs(delta)>2) window.scrollBy({top:delta,left:0,behavior:'auto'});
+  const targetBottom=bottom-70;
+  const targetTop=top+18;
+  if(rect.bottom>targetBottom){window.scrollBy(0,rect.bottom-targetBottom)}
+  else if(rect.top<targetTop){window.scrollBy(0,rect.top-targetTop)}
 }
 function scheduleCellReveal(delay=320){clearTimeout(revealTimer);revealTimer=setTimeout(()=>requestAnimationFrame(revealActiveCell),delay)}
 $('rows').addEventListener('focusin',e=>{
   if(!e.target.matches('input,select,textarea'))return;
-  activeCell=e.target;document.body.classList.add('keyboard-open');scheduleCellReveal(360);
+  activeCell=e.target;
+  document.body.classList.add('keyboard-open');
+  keyboardSpacer.style.height='380px';
+  scheduleCellReveal(550);
 });
-$('rows').addEventListener('focusout',()=>{setTimeout(()=>{if(!$('rows').contains(document.activeElement)){document.body.classList.remove('keyboard-open');activeCell=null;clearTimeout(revealTimer)}},250)});
-if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>scheduleCellReveal(260))}
+$('rows').addEventListener('focusout',()=>{setTimeout(()=>{
+  if(!$('rows').contains(document.activeElement)){
+    document.body.classList.remove('keyboard-open');
+    keyboardSpacer.style.height='0px';activeCell=null;clearTimeout(revealTimer);
+  }
+},250)});
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',()=>scheduleCellReveal(100));
+  window.visualViewport.addEventListener('scroll',()=>scheduleCellReveal(100));
+}
 // Save each keystroke so a partially completed row is not lost.
 $('rows').addEventListener('input',e=>{let el=e.target,id=Number(el.dataset.id),k=el.dataset.key;if(!id||!k)return;let r=db.rows.find(x=>x.id===id);if(!r)return;r[k]=el.value;if(k==='mobile')r.option=el.value;save()});
 $('rows').addEventListener('change',e=>{let el=e.target,id=Number(el.dataset.id),k=el.dataset.key;if(!id||!k)return;let r=db.rows.find(x=>x.id===id);if(!r)return;r[k]=el.value;if(k==='mobile')r.option=el.value;save();renderSummary(filtered())});$('rows').addEventListener('click',e=>{let b=e.target.closest('[data-del]');if(b&&confirm(T[lang].deleteConfirm)){db.rows=db.rows.filter(r=>r.id!==Number(b.dataset.del));db.collections=(db.collections||[]).map(c=>({...c,allocations:c.allocations.filter(a=>db.rows.some(r=>r.id===a.id))})).filter(c=>c.allocations.length);normalizeAllTransactions();save();render()}});
