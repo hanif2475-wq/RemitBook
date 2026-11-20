@@ -377,7 +377,7 @@ $('summaryPng').onclick=async()=>{
   const dateRangeLine=`<div style="padding:12px 0 14px;border-bottom:1px solid #d5b45e;font-size:21px"><div><span style="color:#e8ca78">${bn?'লেনদেন শুরুর তারিখ':'Transaction start date'}:</span> <b>${esc(firstDate)}</b></div><div style="margin-top:5px"><span style="color:#e8ca78">${bn?'লেনদেন শেষের তারিখ':'Transaction end date'}:</span> <b>${esc(lastDate)}</b></div></div>`;
   host=document.createElement('div');host.style.cssText='position:fixed;left:-12000px;top:0;width:760px;z-index:-1';
   const logo=document.querySelector('header img')?.src||'';
-  host.innerHTML=`<div style="background:#102b43;color:#fff;border:7px double #d5b45e;padding:32px 42px;font-family:Arial,'Noto Sans Bengali',sans-serif;line-height:1.45"><div style="display:flex;align-items:center;gap:18px;border-bottom:2px solid #d5b45e;padding-bottom:16px;margin-bottom:15px"><img src="${logo}" style="width:70px;height:70px;object-fit:contain"><div><div style="font-size:30px;font-weight:800;color:#e8ca78">${bn?'মোট লেনদেনের হিসাব':'TRANSACTION SUMMARY'}</div><div style="font-size:18px">${esc(scope)}</div></div></div>
+  host.innerHTML=`<div style="background:#102b43;color:#fff;border:7px double #d5b45e;padding:32px 42px;font-family:Arial,'Noto Sans Bengali',sans-serif;line-height:1.45"><div style="display:flex;align-items:center;gap:18px;border-bottom:2px solid #d5b45e;padding-bottom:16px;margin-bottom:15px"><img src="${logo}" style="width:70px;height:70px;object-fit:contain"><div><div style="font-size:30px;font-weight:800;color:#e8ca78">${bn?'মোট লেনদেনের হিসাব':'TRANSACTION SUMMARY'}</div><div style="font-size:22px;font-weight:800;color:#f5e7bd">${esc((localStorage.getItem(EXPORT_NAME_KEY)||" ").trim()||scope)}</div></div></div>
   ${dateRangeLine}
   ${line(t.transactions,String(a.length))}${line(t.total,moneyC(x.q)+' QAR')}${line(t.total,moneyC(x.b)+' BDT')}${line(t.collected,moneyC(x.collected)+' QAR')}${line(t.due,moneyC(x.due)+' QAR')}${line(t.cash,moneyC(x.cashQ)+' QAR')}${line(t.creditRows,moneyC(x.creditQ)+' QAR')}
   <div style="font-size:24px;font-weight:800;color:#e8ca78;padding-top:20px">${esc(t.channel)}</div>${channels.map((v,i)=>{let z=totals(a.filter(r=>r.type===v));return line(t.channels[i],moneyC(z.q)+' QAR / '+moneyC(z.b)+' BDT')}).join('')}</div>`;
@@ -467,7 +467,7 @@ async function makePNG(id){
   host.innerHTML=`<div style="padding:28px;background:#102b43"><div style="border:2px solid #c9a957;border-radius:24px;padding:28px 34px 22px;background:#102b43;box-shadow:none;text-shadow:none">
    <div style="display:flex;align-items:center;gap:20px;padding-bottom:20px;border-bottom:2px solid #b99a53">
     <img src="${logo}" style="width:76px;height:76px;object-fit:contain;border-radius:16px;background:transparent;padding:4px;flex:none">
-    <div style="flex:1"><div style="font-size:34px;font-weight:800;color:#f5e7bd;line-height:1.35">${bn?'দৈনিক লেনদেন হিসাব':'Daily Transaction Ledger'}</div><div style="font-size:16px;letter-spacing:3px;color:#cbb77e;margin-top:6px">${bn?'লেনদেনের বিবরণী':'TRANSACTION STATEMENT'}</div></div>
+    <div style="flex:1"><div style="font-size:34px;font-weight:800;color:#f5e7bd;line-height:1.35">${bn?'দৈনিক লেনদেন হিসাব':'Daily Transaction Ledger'}</div><div style="font-size:16px;letter-spacing:3px;color:#cbb77e;margin-top:6px">${esc((localStorage.getItem(EXPORT_NAME_KEY)||'').trim()||(bn?'লেনদেনের বিবরণী':'TRANSACTION STATEMENT'))}</div></div>
     <div style="font-size:25px;font-weight:800;color:#f4d98d;flex:none">#${esc(serial||r.txn)}</div>
    </div>
    <section style="padding-top:22px"><div style="font-size:25px;font-weight:800;color:#e8ca78;margin-bottom:8px">${bn?'টাকার হিসাব':'AMOUNT SUMMARY'}</div>
@@ -518,4 +518,37 @@ load();initWindows();syncMonthClosures();windowFor(today());save();monthFilter=m
  // The existing print button invokes the browser print sheet without a download step.
 })();
 </script>
+<style id="professional-a4-portrait-print">
+@media print {
+ @page {size:A4 portrait;margin:9mm 8mm}
+ html,body{background:#fff!important;color:#172c3e!important}
+ header{background:#fff!important;border-bottom:2px solid #c9a34d!important;padding:3mm 1mm 4mm!important;margin-bottom:3mm!important}
+ header .brand{gap:11px!important}
+ header .appicon{width:51px!important;height:51px!important;max-width:51px!important;max-height:51px!important}
+ header .brand h1{color:#142f49!important;font-weight:800!important;font-size:17pt!important;line-height:1.25!important}
+ #printSavedName:not(:empty){font-size:14pt!important;color:#171717!important;font-weight:800!important;margin-top:3px!important}
+ .summary,.report{color:#142f49!important;background:#fff!important;border-color:#c9a34d!important;font-size:8pt!important;line-height:1.5!important}
+ .summary b,.report b{color:#102b43!important}
+ .sheetwrap{width:100%!important;overflow:visible!important}
+ #sheet{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;font-size:6.5pt!important}
+ #sheet th{background:#e5edf4!important;color:#142f49!important;border:0.5pt solid #a9b6c1!important;font-size:6.2pt!important;font-weight:800!important;padding:3px 1px!important}
+ #sheet td{border:0.5pt solid #c0c9d0!important;padding:3px 1px!important;color:#172c3e!important}
+ #sheet tbody tr:nth-child(even){background:#f5f8fb!important}
+ #sheet td input,#sheet td select{font-size:6.5pt!important;padding:0!important;color:#172c3e!important}
+ #sheet td,#sheet th{overflow-wrap:anywhere!important;word-break:normal!important}
+ #sheet col{width:auto!important}
+ #sheet th:nth-child(1),#sheet td:nth-child(1){width:5%!important}
+ #sheet th:nth-child(2),#sheet td:nth-child(2){width:5%!important}
+ #sheet th:nth-child(3),#sheet td:nth-child(3){width:9%!important}
+ #sheet th:nth-child(4),#sheet td:nth-child(4){width:8%!important}
+ #sheet th:nth-child(5),#sheet td:nth-child(5){width:12%!important}
+ #sheet th:nth-child(6),#sheet td:nth-child(6){width:8%!important}
+ #sheet th:nth-child(7),#sheet td:nth-child(7){width:8%!important}
+ #sheet th:nth-child(8),#sheet td:nth-child(8){width:12%!important}
+ #sheet th:nth-child(9),#sheet td:nth-child(9){width:7%!important}
+ #sheet th:nth-child(10),#sheet td:nth-child(10){width:9%!important}
+ #sheet th:nth-child(11),#sheet td:nth-child(11){width:9%!important}
+ #sheet th:nth-child(12),#sheet td:nth-child(12){width:8%!important}
+}
+</style>
 </body></html>
