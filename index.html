@@ -659,51 +659,53 @@ load();initWindows();syncMonthClosures();windowFor(today());save();monthFilter=m
 <script id="manager-accordion-script">
 (function(){
  const manager=document.getElementById('accountManager');
- if(!manager)return;
- function fold(title,contents,key){
+ const archive=document.getElementById('monthArchive');
+ if(!manager||!archive)return;
+ const titles={search:['লেনদেন খুঁজুন','Search transactions'],name:['ব্যাকআপের নাম','Backup name'],all:['সব হিসাব','All accounts'],monthly:['মাসভিত্তিক সংরক্ষিত হিসাব','Monthly saved accounts'],custom:['নিজের পছন্দমতো হিসাব ক্লোজ','Close selected transactions'],closed:['হিসাব ক্লোজ','Closed accounts']};
+ function fold(key,nodes){
   const d=document.createElement('details');d.className='manager-fold';d.dataset.fold=key;
-  const summary=document.createElement('summary');summary.textContent=title;d.appendChild(summary);
-  const body=document.createElement('div');body.className='fold-content';
-  contents.forEach(n=>{if(n)body.appendChild(n)});d.appendChild(body);
-  return d;
+  const h=document.createElement('summary');h.textContent=titles[key][typeof lang!=='undefined'&&lang==='en'?1:0];d.appendChild(h);
+  const body=document.createElement('div');body.className='fold-content';nodes.filter(Boolean).forEach(n=>body.appendChild(n));d.appendChild(body);return d;
  }
- const search=document.getElementById('ledgerSearchPanel'),name=document.getElementById('exportNameSettings'),archive=document.getElementById('monthArchive');
- if(search)manager.insertBefore(fold('লেনদেন খুঁজুন',[search],'search'),search);
- if(name)manager.insertBefore(fold('ব্যাকআপের নাম',[name],'backup-name'),archive);
- if(archive){
-  const archiveFold=fold('মাসভিত্তিক সংরক্ষিত হিসাব',[archive],'monthly');
-  manager.appendChild(archiveFold);
-  const observer=new MutationObserver(()=>{
-   if(archive.querySelector('[data-archive-fold-ready]'))return;
-   observer.disconnect();
-   const closeTools=archive.querySelector('#closeChoices')?.closest('.archive-row');
-   const segments=archive.querySelector('#archiveSegments');
-   const archiveList=archive.querySelector('#archiveList');
-   const topRow=archive.querySelector('.archive-row');
-   const header=archive.querySelector('b');
-   if(header)header.style.display='none';
-   const all=fold('সব হিসাব',[topRow],'all');
-   const monthly=fold('মাসভিত্তিক সংরক্ষিত হিসাব',[archiveList],'month-list');
-   const custom=fold('নিজের পছন্দমতো হিসাব ক্লোজ',[closeTools],'custom');
-   const closed=fold('হিসাব ক্লোজ',[segments],'closed');
-   [all,monthly,custom,closed].forEach(d=>{d.dataset.archiveFoldReady='1';archive.appendChild(d)});
-   observer.observe(archive,{childList:true,subtree:false});
-  });
-  observer.observe(archive,{childList:true,subtree:false});
+ const search=document.getElementById('ledgerSearchPanel'),name=document.getElementById('exportNameSettings');
+ if(search)manager.insertBefore(fold('search',[search]),archive);
+ if(name)manager.insertBefore(fold('name',[name]),archive);
+ function rebuild(){
+  const previouslyOpen=new Set([...archive.querySelectorAll('details.manager-fold[open]')].map(x=>x.dataset.fold));
+  const topRow=archive.querySelector(':scope > .archive-row');
+  const list=archive.querySelector('#archiveList');
+  const segments=archive.querySelector('#archiveSegments');
+  const closeTools=archive.querySelector('#closeChoices')?.closest('.archive-row');
+  const header=archive.querySelector(':scope > b');if(header)header.remove();
+  if(!topRow||!list||!segments||!closeTools)return;
+  archive.replaceChildren(fold('all',[topRow]),fold('monthly',[list]),fold('custom',[closeTools]),fold('closed',[segments]));
+  archive.querySelectorAll('details.manager-fold').forEach(d=>{d.open=previouslyOpen.has(d.dataset.fold)});
  }
- document.addEventListener('click',function(e){
-  const clicked=e.target;
-  if(!manager.contains(clicked)){
-   manager.querySelectorAll('details[open]').forEach(d=>d.open=false);
-   manager.open=false;
-   return;
-  }
-  const summary=clicked.closest('summary');
-  if(summary&&summary.parentElement?.classList.contains('manager-fold')){
-   const parent=summary.parentElement;
-   for(const d of parent.parentElement.children){if(d!==parent&&d.matches?.('details.manager-fold'))d.open=false}
-  }
+ rebuild();
+ if(typeof archiveRender==='function'){
+  const old=archiveRender;
+  archiveRender=function(){
+   const open=new Set([...archive.querySelectorAll('details.manager-fold[open]')].map(d=>d.dataset.fold));
+   old.apply(this,arguments);
+   // Re-create fold controls after the existing archive renderer rebuilds its content.
+   for(const key of open){const marker=document.createElement('i');marker.hidden=true;marker.dataset.wasOpen=key;archive.appendChild(marker)}
+   rebuild();
+   archive.querySelectorAll('details.manager-fold').forEach(d=>d.open=open.has(d.dataset.fold));
+   archive.querySelectorAll('[data-was-open]').forEach(n=>n.remove());
+  };
+ }
+ manager.addEventListener('toggle',e=>{if(e.target===manager&&!manager.open)manager.querySelectorAll('details.manager-fold').forEach(d=>d.open=false)},true);
+ manager.addEventListener('click',e=>{
+  const h=e.target.closest('summary');if(!h||!manager.contains(h))return;
+  const d=h.parentElement;
+  if(d.classList.contains('manager-fold')&&!d.open){manager.querySelectorAll('details.manager-fold[open]').forEach(other=>{if(other!==d)other.open=false})}
  });
+ document.addEventListener('pointerdown',e=>{
+  if(manager.open&&!manager.contains(e.target)){
+   manager.querySelectorAll('details.manager-fold[open]').forEach(d=>d.open=false);
+   manager.open=false;
+  }
+ },true);
 })();
 </script>
 </body></html>
