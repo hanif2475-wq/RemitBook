@@ -402,7 +402,7 @@ function archiveRender(){
  }
  const kindOfClosed=w=>{if(w.closeKind)return w.closeKind;const all=archiveRows(w.month),snapshot=closedRows(w);return all.length&&snapshot.length===all.length&&snapshot.every(r=>all.some(x=>x.id===r.id))?'full':'selected'};
  const closedHistory=(kind)=>db.windows.filter(w=>w.closed&&kindOfClosed(w)===kind).sort((a,b)=>String(b.closedAt||'').localeCompare(String(a.closedAt||''))||String(b.id).localeCompare(String(a.id)));
- const historyHTML=(kind)=>closedHistory(kind).map(w=>{const rows=closedRows(w),t=totals(rows);return `<div class="archive-row closed-account"><button type="button" data-history-window="${esc(w.id)}">${esc(monthTitle(w.month))} · ${bn?'হিসাব':'Account'} ${w.index} · ${bn?'ক্লোজ':'Closed'} (${rows.length})</button><span>${moneyC(t.q)} QAR · ${bn?'বাকি':'Due'} ${moneyC(t.due)} QAR</span><button type="button" class="closed-delete" data-delete-history="${esc(w.id)}" aria-label="ক্লোজ হিসাব মুছুন">×</button></div>`}).join('')||`<p>${bn?'ক্লোজ করা হিসাব নেই।':'No closed accounts.'}</p>`;
+ const historyHTML=(kind)=>closedHistory(kind).map((w,i)=>{const rows=closedRows(w),t=totals(rows);return `<div class="archive-row closed-account"><button type="button" data-history-window="${esc(w.id)}">${esc(monthTitle(w.month))} · ${bn?'হিসাব':'Account'} ${i+1} · ${bn?'ক্লোজ':'Closed'} (${rows.length})</button><span>${moneyC(t.q)} QAR · ${bn?'বাকি':'Due'} ${moneyC(t.due)} QAR</span><button type="button" class="closed-delete" data-delete-history="${esc(w.id)}" aria-label="ক্লোজ হিসাব মুছুন">×</button></div>`}).join('')||`<p>${bn?'ক্লোজ করা হিসাব নেই।':'No closed accounts.'}</p>`;
  const historyClick=e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.historyWindow||b.dataset.deleteHistory;if(!id)return;const w=db.windows.find(x=>x.id===id&&x.closed);if(!w)return;if(b.dataset.deleteHistory){if(!confirm('শুধু এই ক্লোজ হিসাবের কপি মুছবেন? মূল হিসাব অপরিবর্তিত থাকবে।'))return;db.windows=db.windows.filter(x=>x.id!==w.id);save();render();return}selectedSegment=w.id;monthFilter=w.month;dateFilter='';$('monthFilter').value=w.month;$('dateFilter').value='';render();document.getElementById('rows')?.closest('table')?.scrollIntoView({behavior:'smooth',block:'start'});};
  const closePanel=document.getElementById('managerSection5');
  if(closePanel){
@@ -1031,4 +1031,27 @@ html body #nativeMenu #menuPanel-manager #managerSection4.manager-panel-open,
 html body #nativeMenu #menuPanel-manager #managerSection5.manager-panel-open{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important;overflow:visible!important}
 html body #nativeMenu #menuPanel-manager #managerSection3.manager-panel-open #monthArchive{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important}
 }
-</style></body></html>
+</style><script id="main-menu-toggle-close-20261123">
+(function(){
+  function init(){
+    var menu=document.getElementById('nativeMenu');
+    if(!menu)return;
+    var radios=[0,1,2].map(function(i){return document.getElementById('menuRadio'+i)});
+    radios.forEach(function(r){if(r)r.checked=false});
+    menu.querySelectorAll(':scope > label.menu-top-button[for^="menuRadio"]').forEach(function(label){
+      label.addEventListener('click',function(e){
+        var radio=document.getElementById(label.getAttribute('for'));
+        if(!radio)return;
+        var wasOpen=radio.checked;
+        e.preventDefault();
+        radios.forEach(function(r){if(r)r.checked=false});
+        if(!wasOpen)radio.checked=true;
+        radio.dispatchEvent(new Event('change',{bubbles:true}));
+      });
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
+  else init();
+})();
+</script>
+</body></html>
