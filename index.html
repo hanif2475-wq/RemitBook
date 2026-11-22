@@ -382,7 +382,7 @@ function archiveRows(month){return db.rows.filter(r=>monthOf(r.date)===month)}
 function archiveRender(){
  const months=[...new Set([...db.windows.map(w=>w.month),...db.rows.map(r=>monthOf(r.date))])].filter(Boolean).sort().reverse();
  const bn=lang==='bn',cur=monthOf(today());const el=$('monthArchive');
- el.innerHTML=`<b>${bn?'মাসভিত্তিক সংরক্ষিত হিসাব':'Monthly saved accounts'}</b><div class="archive-row"><input id="archiveSearch" placeholder="${bn?'মাস / তারিখ খুঁজুন':'Search month / date'}" aria-label="Search month" type="search"><button id="archiveCurrent">${bn?'চলমান মাস':'Current month'}</button><button id="archiveAll">${bn?'সব হিসাব':'All accounts'}</button></div><div id="archiveList"></div><div id="archiveSegments"></div>`;
+ el.innerHTML=`<b>${bn?'মাসভিত্তিক সংরক্ষিত হিসাব':'Monthly saved accounts'}</b><div class="archive-row"><input id="archiveSearch" placeholder="${bn?'মাস / তারিখ খুঁজুন':'Search month / date'}" aria-label="Search month" type="search"><button id="archiveCurrent">${bn?'চলমান মাস':'Current month'}</button></div><div id="archiveList"></div><div id="archiveSegments"></div>`;
  const list=$('archiveList');const segments=$('archiveSegments');
  const closeTools=document.createElement('div');closeTools.className='archive-row';closeTools.style.cssText='display:block;padding:9px;border:1px solid #c7b78a;border-radius:9px;margin:8px 0';
  closeTools.innerHTML=`<b>${bn?'নিজের পছন্দমতো হিসাব ক্লোজ':'Close selected transactions'}</b><div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:7px"><label>${bn?'শুরু':'From'} <input id="closeFrom" type="date"></label><label>${bn?'শেষ':'To'} <input id="closeTo" type="date"></label><button id="closePick" type="button">${bn?'লেনদেন বাছাই':'Select rows'}</button></div><div id="closeChoices" style="display:none;max-height:220px;overflow:auto;margin:7px 0"></div><button id="closeSelected" type="button" style="margin-top:6px">${bn?'✓ নির্বাচিত হিসাব ক্লোজ করুন':'Close checked rows'}</button>`;
@@ -423,7 +423,7 @@ function archiveRender(){
  draw();$('archiveSearch').oninput=e=>draw(e.target.value.trim());
  list.onclick=e=>{const b=e.target.closest('[data-archive-month]');if(!b)return;monthFilter=b.dataset.archiveMonth;dateFilter='';selectedSegment='';$('dateFilter').value='';$('monthFilter').value=monthFilter;render()};
  $('archiveCurrent').onclick=()=>{monthFilter=cur;dateFilter='';selectedSegment='';$('monthFilter').value=cur;$('dateFilter').value='';render()};
- $('archiveAll').onclick=()=>{monthFilter=dateFilter=selectedSegment='';$('monthFilter').value=$('dateFilter').value='';render()};
+
  segments.onclick=e=>{
   const b=e.target.closest('button');if(!b)return;
   const m=monthFilter||cur;
