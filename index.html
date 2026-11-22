@@ -646,4 +646,64 @@ load();initWindows();syncMonthClosures();windowFor(today());save();monthFilter=m
 }
 @media screen { #printLogoWatermark {display:none!important;} }
 </style>
+
+<style id="manager-accordion-style">
+#accountManager .manager-fold{margin:9px 10px;border:1px solid #c9d4dd;border-radius:9px;background:#fff;overflow:hidden}
+#accountManager .manager-fold>summary{cursor:pointer;list-style:none;padding:12px 13px;font-weight:700;color:#173b58;user-select:none}
+#accountManager .manager-fold>summary::-webkit-details-marker{display:none}
+#accountManager .manager-fold>summary:after{content:"＋";float:right;font-weight:700}
+#accountManager .manager-fold[open]>summary:after{content:"−"}
+#accountManager .manager-fold>.fold-content{padding:4px 9px 12px}
+#accountManager .manager-fold .month-archive{border:0;margin:0;padding:0;background:transparent}
+</style>
+<script id="manager-accordion-script">
+(function(){
+ const manager=document.getElementById('accountManager');
+ if(!manager)return;
+ function fold(title,contents,key){
+  const d=document.createElement('details');d.className='manager-fold';d.dataset.fold=key;
+  const summary=document.createElement('summary');summary.textContent=title;d.appendChild(summary);
+  const body=document.createElement('div');body.className='fold-content';
+  contents.forEach(n=>{if(n)body.appendChild(n)});d.appendChild(body);
+  return d;
+ }
+ const search=document.getElementById('ledgerSearchPanel'),name=document.getElementById('exportNameSettings'),archive=document.getElementById('monthArchive');
+ if(search)manager.insertBefore(fold('লেনদেন খুঁজুন',[search],'search'),search);
+ if(name)manager.insertBefore(fold('ব্যাকআপের নাম',[name],'backup-name'),archive);
+ if(archive){
+  const archiveFold=fold('মাসভিত্তিক সংরক্ষিত হিসাব',[archive],'monthly');
+  manager.appendChild(archiveFold);
+  const observer=new MutationObserver(()=>{
+   if(archive.querySelector('[data-archive-fold-ready]'))return;
+   observer.disconnect();
+   const closeTools=archive.querySelector('#closeChoices')?.closest('.archive-row');
+   const segments=archive.querySelector('#archiveSegments');
+   const archiveList=archive.querySelector('#archiveList');
+   const topRow=archive.querySelector('.archive-row');
+   const header=archive.querySelector('b');
+   if(header)header.style.display='none';
+   const all=fold('সব হিসাব',[topRow],'all');
+   const monthly=fold('মাসভিত্তিক সংরক্ষিত হিসাব',[archiveList],'month-list');
+   const custom=fold('নিজের পছন্দমতো হিসাব ক্লোজ',[closeTools],'custom');
+   const closed=fold('হিসাব ক্লোজ',[segments],'closed');
+   [all,monthly,custom,closed].forEach(d=>{d.dataset.archiveFoldReady='1';archive.appendChild(d)});
+   observer.observe(archive,{childList:true,subtree:false});
+  });
+  observer.observe(archive,{childList:true,subtree:false});
+ }
+ document.addEventListener('click',function(e){
+  const clicked=e.target;
+  if(!manager.contains(clicked)){
+   manager.querySelectorAll('details[open]').forEach(d=>d.open=false);
+   manager.open=false;
+   return;
+  }
+  const summary=clicked.closest('summary');
+  if(summary&&summary.parentElement?.classList.contains('manager-fold')){
+   const parent=summary.parentElement;
+   for(const d of parent.parentElement.children){if(d!==parent&&d.matches?.('details.manager-fold'))d.open=false}
+  }
+ });
+})();
+</script>
 </body></html>
