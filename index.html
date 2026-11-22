@@ -647,6 +647,30 @@ load();initWindows();syncMonthClosures();windowFor(today());save();monthFilter=m
 @media screen { #printLogoWatermark {display:none!important;} }
 </style>
 
+<style id="manager-six-grid-fix">
+/* Six account management choices share one flat, two-column grid. */
+#accountManager{display:block}
+#accountManager #monthArchive{display:contents}
+#accountManager[open]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:8px;padding:10px;align-items:start}
+#accountManager[open]>#accountManagerTitle{grid-column:1/-1;margin:-10px -10px 2px;padding:12px 14px}
+#accountManager .manager-fold{margin:0!important;min-width:0;width:100%;box-sizing:border-box}
+#accountManager .manager-fold>summary{font-size:clamp(12px,3vw,16px);padding:12px 8px;min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:4px;line-height:1.25}
+#accountManager .manager-fold>summary:after{float:none;flex:none}
+#accountManager .manager-fold[open]{grid-column:1/-1}
+#accountManager .manager-fold>.fold-content{overflow-wrap:anywhere}
+@media(min-width:760px){#accountManager[open]{grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>
+<style id="manager-three-column-full-window">
+/* Always display the six controls in three columns on two rows. */
+#accountManager[open]{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+#accountManager .manager-fold>summary{font-size:clamp(10px,2.6vw,15px)!important;padding:9px 5px!important;min-height:68px!important;word-break:normal;overflow-wrap:anywhere;text-align:center;justify-content:center!important;flex-direction:column;gap:2px!important}
+#accountManager .manager-fold>summary:after{font-size:16px}
+/* An opened tool fills the visible app window rather than becoming a narrow grid cell. */
+#accountManager .manager-fold[open]{position:fixed!important;inset:3vh 3vw!important;z-index:99990!important;display:flex!important;flex-direction:column!important;min-width:0!important;max-height:94dvh!important;width:auto!important;margin:0!important;background:#fff!important;border:2px solid #a6b9ca!important;border-radius:14px!important;box-shadow:0 0 0 100vmax rgba(9,26,43,.5),0 12px 40px rgba(0,0,0,.25)!important;overflow:hidden!important}
+#accountManager .manager-fold[open]>summary{flex:0 0 auto;min-height:54px!important;font-size:18px!important;flex-direction:row;justify-content:space-between!important;padding:12px 16px!important;text-align:left;background:#eaf2f8}
+#accountManager .manager-fold[open]>.fold-content{flex:1;min-height:0;overflow:auto!important;-webkit-overflow-scrolling:touch;padding:12px!important}
+#accountManager .manager-fold[open] .month-archive{max-width:none;width:100%}
+</style>
 <style id="manager-accordion-style">
 #accountManager .manager-fold{margin:9px 10px;border:1px solid #c9d4dd;border-radius:9px;background:#fff;overflow:hidden}
 #accountManager .manager-fold>summary{cursor:pointer;list-style:none;padding:12px 13px;font-weight:700;color:#173b58;user-select:none}
@@ -708,4 +732,11 @@ load();initWindows();syncMonthClosures();windowFor(today());save();monthFilter=m
  },true);
 })();
 </script>
+<style id="manager-six-buttons-modal-correction">
+/* Six buttons stay visible in a 3 x 2 grid; only the chosen content opens as a window. */
+#accountManager[open]{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+#accountManager .manager-fold[open]{position:static!important;inset:auto!important;z-index:auto!important;display:block!important;grid-column:auto!important;width:100%!important;max-height:none!important;min-width:0!important;margin:0!important;background:#fff!important;border:1px solid #c9d4dd!important;border-radius:9px!important;box-shadow:none!important;overflow:visible!important}
+#accountManager .manager-fold[open]>summary{min-height:68px!important;font-size:clamp(10px,2.6vw,15px)!important;flex-direction:column!important;justify-content:center!important;text-align:center!important;padding:9px 5px!important;background:#eaf2f8!important}
+#accountManager .manager-fold[open]>.fold-content{position:fixed!important;inset:6vh 3vw!important;z-index:99990!important;display:block!important;box-sizing:border-box!important;max-height:88dvh!important;width:94vw!important;overflow:auto!important;-webkit-overflow-scrolling:touch;background:#fff!important;border:2px solid #a6b9ca!important;border-radius:14px!important;padding:16px!important;box-shadow:0 0 0 100vmax rgba(9,26,43,.50),0 12px 40px rgba(0,0,0,.25)!important}
+</style>
 </body></html>
