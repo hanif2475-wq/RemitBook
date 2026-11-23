@@ -1294,4 +1294,56 @@ html body #ledgerDetailsPanel #menuPanel-bulk #bulkOpen{display:block!important;
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
-</body></html>
+<style id="menu-polish-20261123">
+#ledgerDetailsPanel>.language,#ledgerDetailsPanel>label[for="language"]{display:none!important}
+#ledgerDetailsPanel .lang-choice{display:flex;align-items:center;justify-content:space-between;gap:10px;position:relative;margin-bottom:12px}
+#ledgerDetailsPanel .lang-choice button{width:100%;display:flex;justify-content:space-between;align-items:center;min-height:44px;padding:10px 12px;border-radius:9px;font-size:15px}
+#ledgerDetailsPanel .lang-options{position:absolute;top:100%;right:0;z-index:200;background:white;border:1px solid #c9d9e6;border-radius:9px;padding:5px;box-shadow:0 5px 15px #0002;width:170px}
+#ledgerDetailsPanel .lang-options[hidden]{display:none!important}#ledgerDetailsPanel .lang-options button{border:0;text-align:left}
+#ledgerDetailsPanel #menuPanel-manager .fixed-six-grid,#ledgerDetailsPanel #menuPanel-manager .account-group-toggle,#ledgerDetailsPanel #menuPanel-manager .account-nested{display:none!important}
+#ledgerDetailsPanel .manager-new{display:flex;flex-direction:column;gap:8px}
+#ledgerDetailsPanel .manager-new button{width:100%;min-height:44px;white-space:normal;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:9px;background:#edf5fc;color:#17496b;border:1px solid #c5d6e3;font-size:14px}
+#ledgerDetailsPanel .manager-new .manager-children{display:none;flex-direction:column;gap:7px;margin-left:12px}#ledgerDetailsPanel .manager-new .manager-children.open{display:flex}
+#ledgerDetailsPanel .manager-new .manager-leaf[aria-expanded=true],#ledgerDetailsPanel .manager-new .manager-parent[aria-expanded=true]{background:#d8e8f6}
+#ledgerDetailsPanel .manager-new .manager-arrow{flex:0 0 auto;font-size:17px}
+#ledgerDetailsPanel #menuPanel-manager .fixed-sub-panel{display:none!important}
+#ledgerDetailsPanel #menuPanel-manager .fixed-sub-panel.manager-panel-open{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important;overflow:visible!important}
+#ledgerDetailsPanel #menuPanel-ledger .toolbar{display:flex!important;flex-direction:column!important;gap:0!important;padding:6px!important;overflow:hidden!important}
+#ledgerDetailsPanel #menuPanel-ledger .toolbar>.field,#ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row{width:100%!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;padding:9px 4px!important;min-width:0!important;max-width:100%!important;min-height:53px!important;border-bottom:1px solid #e3ebf1!important}
+#ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row>.field{display:flex!important;flex:1 1 auto!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;min-width:0!important;width:auto!important;margin:0!important;padding:0!important}
+#ledgerDetailsPanel #menuPanel-ledger .toolbar .field>span{flex:1 1 auto!important;min-width:0!important;white-space:normal!important;line-height:1.3!important;font-size:13px!important;color:#17496b!important;font-weight:700!important}
+#ledgerDetailsPanel #menuPanel-ledger .toolbar .field>input[type=date]{flex:0 1 140px!important;width:140px!important;min-width:0!important;max-width:48%!important;height:40px!important;font-size:13px!important;padding:3px!important}
+#ledgerDetailsPanel #menuPanel-ledger .toolbar .ledger-date-row #addTop{flex:0 0 42px!important;width:42px!important;min-width:42px!important;height:42px!important;padding:0!important;font-size:24px!important}
+#ledgerDetailsPanel #menuPanel-ledger .toolbar .field:has(.month-choice)>input[type=month]{display:none!important}
+#ledgerDetailsPanel #menuPanel-ledger .toolbar .field:has(.month-choice) .month-choice{display:flex!important;flex:0 1 210px!important;min-width:0!important;width:210px!important;max-width:63%!important;gap:5px!important;align-items:center!important;margin:0!important}
+#ledgerDetailsPanel #menuPanel-ledger .toolbar .month-choice select{position:static!important;min-width:0!important;width:auto!important;max-width:none!important;height:40px!important;padding:3px 4px!important;font-size:13px!important;line-height:1.2!important;flex:1 1 58%!important}
+#ledgerDetailsPanel #menuPanel-ledger .toolbar .month-choice select+select{flex:0 1 78px!important;width:78px!important}
+#ledgerDetailsPanel #menuPanel-ledger .toolbar>#showAll{width:100%!important;min-height:44px!important;margin-top:5px!important;position:static!important}
+@media(max-width:390px){#ledgerDetailsPanel #menuPanel-ledger .toolbar .field>span{font-size:12px!important}#ledgerDetailsPanel #menuPanel-ledger .toolbar .month-choice select{font-size:12px!important}#ledgerDetailsPanel #menuPanel-ledger .toolbar .field>input[type=date]{flex-basis:122px!important;width:122px!important}}
+</style><script id="menu-polish-behavior-20261123">
+(function(){
+ function init(){
+  var root=document.getElementById('ledgerDetailsPanel'),manager=document.getElementById('menuPanel-manager'),language=document.getElementById('language');
+  if(!root||!manager||!language||root.dataset.polished)return;root.dataset.polished='1';
+  function isBn(){return language.value!=='en'}
+  var langRow=document.createElement('div');langRow.className='lang-choice';var langButton=document.createElement('button');langButton.type='button';langButton.setAttribute('aria-expanded','false');var langOptions=document.createElement('div');langOptions.className='lang-options';langOptions.hidden=true;
+  langRow.appendChild(langButton);langRow.appendChild(langOptions);root.insertBefore(langRow,root.querySelector('#nativeMenu'));
+  var options=[['bn','বাংলা'],['en','English']];options.forEach(function(entry){var b=document.createElement('button');b.type='button';b.textContent=entry[1];b.addEventListener('click',function(){language.value=entry[0];language.dispatchEvent(new Event('change',{bubbles:true}));langOptions.hidden=true;langButton.setAttribute('aria-expanded','false')});langOptions.appendChild(b)});
+  langButton.addEventListener('click',function(){langOptions.hidden=!langOptions.hidden;langButton.setAttribute('aria-expanded',String(!langOptions.hidden))});
+  var layout=document.createElement('div');layout.className='manager-new';manager.insertBefore(layout,manager.firstChild);
+  var groups={};var active=null;
+  function closeLeaf(){if(active!==null){var panel=document.getElementById('managerSection'+active);if(panel)panel.classList.remove('manager-panel-open');}active=null;layout.querySelectorAll('.manager-leaf').forEach(function(b){b.setAttribute('aria-expanded','false');b.querySelector('.manager-arrow').textContent='⌄'})}
+  function makeButton(kind,index,parent){var b=document.createElement('button');b.type='button';b.className=kind==='leaf'?'manager-leaf':'manager-parent';b.setAttribute('aria-expanded','false');var name=document.createElement('span');name.className='manager-name';var arrow=document.createElement('span');arrow.className='manager-arrow';arrow.textContent='⌄';b.appendChild(name);b.appendChild(arrow);parent.appendChild(b);
+   if(kind==='leaf'){b.addEventListener('click',function(){var opening=active!==index;closeLeaf();if(opening){active=index;var panel=document.getElementById('managerSection'+index);if(panel)panel.classList.add('manager-panel-open');b.setAttribute('aria-expanded','true');arrow.textContent='⌃'}})}else{var children=document.createElement('div');children.className='manager-children';parent.appendChild(children);groups[index]={button:b,children:children};b.addEventListener('click',function(){var opening=!children.classList.contains('open');closeLeaf();Object.keys(groups).forEach(function(key){groups[key].children.classList.remove('open');groups[key].button.setAttribute('aria-expanded','false');groups[key].button.querySelector('.manager-arrow').textContent='⌄'});if(opening){children.classList.add('open');b.setAttribute('aria-expanded','true');arrow.textContent='⌃'}})}return b}
+  var buttons={};buttons.search=makeButton('leaf',0,layout);buttons.backup=makeButton('leaf',1,layout);buttons.accounts=makeButton('group','accounts',layout);buttons.all=makeButton('leaf',2,groups.accounts.children);buttons.monthly=makeButton('leaf',3,groups.accounts.children);buttons.close=makeButton('group','close',layout);buttons.custom=makeButton('leaf',4,groups.close.children);buttons.final=makeButton('leaf',5,groups.close.children);
+  var labels={bn:{search:'🔎 খুঁজুন',backup:'🗄️ ব্যাকআপ',accounts:'📒 হিসাব',all:'সব হিসাব',monthly:'মাসভিত্তিক সংরক্ষিত হিসাব',close:'🔒 বন্ধ',custom:'নিজের পছন্দমতো হিসাব বন্ধ',final:'হিসাব বন্ধ',language:'ভাষা'},en:{search:'🔎 Search',backup:'🗄️ Backup',accounts:'📒 Accounts',all:'All accounts',monthly:'Monthly archived accounts',close:'🔒 Close',custom:'Custom account close',final:'Close account',language:'Language'}};
+  function translate(){var d=labels[isBn()?'bn':'en'];Object.keys(buttons).forEach(function(k){buttons[k].querySelector('.manager-name').textContent=d[k]});langButton.innerHTML='<span>'+d.language+'</span><span>⌄</span>';var month=document.querySelector('#menuPanel-ledger .month-choice');if(month){month.style.position='static';} }
+  language.addEventListener('change',function(){setTimeout(translate,0)});translate();
+  // Reset all subordinate panels whenever a different top-level section is opened.
+  root.querySelectorAll('.details-section-toggle').forEach(function(b){b.addEventListener('click',function(){closeLeaf();Object.keys(groups).forEach(function(k){groups[k].children.classList.remove('open');groups[k].button.setAttribute('aria-expanded','false');groups[k].button.querySelector('.manager-arrow').textContent='⌄'})})});
+  // Restore the original collection button and its working form without duplicating controls.
+  var bulk=document.getElementById('bulkOpen');if(bulk){bulk.textContent=isBn()?'☑ আদায় শুরু করুন':'☑ Start collection';language.addEventListener('change',function(){bulk.textContent=isBn()?'☑ আদায় শুরু করুন':'☑ Start collection'})}
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script></body></html>
