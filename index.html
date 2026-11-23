@@ -1449,4 +1449,15 @@ html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field #dateFilter
 }
 html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row #addTop{display:none!important;}
 </style>
+<style id="month-picker-140x40-final">
+/* Requested month selector size only; other two date fields stay unchanged. */
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#monthFilter){
+ grid-template-columns:minmax(0,1fr) 140px!important;
+}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field #monthFilter{
+ width:140px!important;min-width:140px!important;max-width:140px!important;
+ height:40px!important;min-height:40px!important;max-height:40px!important;
+ justify-self:end!important;box-sizing:border-box!important;
+}
+</style>
 </body></html>
