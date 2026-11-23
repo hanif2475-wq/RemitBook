@@ -680,7 +680,52 @@ function openBulk(){
   db.collections.push({id:'c'+Date.now()+'-'+db.collections.length,date:today(),allocations});save();render();openBulk();alert(bn?'আদায় সংরক্ষণ হয়েছে।':'Collection saved.');
  };
  $('bulkFull').onclick=()=>collect(true);$('bulkPartial').onclick=()=>collect(false);
+  renderBulkHistory(panel);
 }
+ // Bulk history: edit individual allocations or delete several saved collection batches.
+ function renderBulkHistory(panel){
+  const bn=lang==='bn', batches=(db.collections||[]).filter(c=>Array.isArray(c.allocations)&&c.allocations.some(a=>a.cents>0));
+  const host=document.createElement('section');host.id='bulkHistory';host.style.cssText='margin-top:18px;padding-top:12px;border-top:1px solid #cbd5e1';
+  host.innerHTML='<h3 style="margin:0 0 8px;color:#173b56">'+(bn?'একসঙ্গে আদায়ের হিস্ট্রি':'Bulk collection history')+'</h3>'+
+   (batches.length?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button type="button" id="bulkHistoryAll">'+(bn?'সব নির্বাচন':'Select all')+'</button><button type="button" id="bulkHistoryDelete">'+(bn?'নির্বাচিত আদায় একসঙ্গে মুছুন':'Delete selected batches')+'</button></div>':'<p style="font-size:13px">'+(bn?'এখনো কোনো আদায়ের হিস্ট্রি নেই।':'No bulk collection history yet.')+'</p>')+
+   batches.slice().reverse().map((c,i)=>{
+    const idx=(db.collections||[]).indexOf(c);
+    const rows=c.allocations.filter(a=>a.cents>0).map((a,j)=>{
+     const r=db.rows.find(x=>x.id===a.id);
+     return '<label style="display:flex;gap:6px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:6px 0;font-size:13px"><span>'+esc(r?(r.date+' · #'+r.txn+' · '+(r.name||'')):(bn?'মুছে যাওয়া লেনদেন':'Deleted transaction'))+'</span><input class="bulk-history-amount" data-batch-index="'+idx+'" data-allocation-index="'+c.allocations.indexOf(a)+'" type="number" min="0" step="0.01" value="'+(a.cents/100).toFixed(2)+'" style="width:100px;max-width:40%;padding:7px;border:1px solid #b6c3d0;border-radius:5px"></label>';
+    }).join('');
+    return '<div style="border:1px solid #cbd5e1;border-radius:7px;padding:10px;margin:8px 0;background:#fff"><label style="display:flex;align-items:center;gap:8px;font-weight:700"><input type="checkbox" class="bulk-history-check" data-batch-index="'+idx+'" style="width:18px;height:18px">'+esc(c.date||'')+' · '+(bn?'আদায়':'Collection')+' '+(batches.length-i)+'</label>'+rows+'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><button type="button" class="bulk-history-save" data-batch-index="'+idx+'">'+(bn?'সংশোধন সংরক্ষণ':'Save changes')+'</button><button type="button" class="bulk-history-delete-one" data-batch-index="'+idx+'">'+(bn?'এই আদায় মুছুন':'Delete batch')+'</button></div></div>';
+   }).join('');
+  panel.appendChild(host);
+  function deleteBatches(indices){
+   indices=[...new Set(indices)].filter(i=>Number.isInteger(i)&&db.collections[i]);
+   if(!indices.length){alert(bn?'আগে হিস্ট্রি নির্বাচন করুন।':'Select history first.');return}
+   if(!confirm(bn?'নির্বাচিত '+indices.length+'টি আদায় মুছবেন? আদায়কৃত টাকা হিসাব থেকেও বাদ যাবে।':'Delete '+indices.length+' collection batches and reverse their amounts?'))return;
+   for(const i of indices){for(const a of (db.collections[i].allocations||[])){
+    const r=db.rows.find(x=>x.id===a.id);if(r)r.collected=(Math.max(0,cents(r.collected)-Math.max(0,a.cents))/100).toFixed(2);
+   }}
+   db.collections=db.collections.filter((c,i)=>!indices.includes(i));save();render();openBulk();
+  }
+  const all=host.querySelector('#bulkHistoryAll');if(all)all.onclick=()=>host.querySelectorAll('.bulk-history-check').forEach(x=>x.checked=true);
+  const del=host.querySelector('#bulkHistoryDelete');if(del)del.onclick=()=>deleteBatches([...host.querySelectorAll('.bulk-history-check:checked')].map(x=>Number(x.dataset.batchIndex)));
+  host.querySelectorAll('.bulk-history-delete-one').forEach(b=>b.onclick=()=>deleteBatches([Number(b.dataset.batchIndex)]));
+  host.querySelectorAll('.bulk-history-save').forEach(b=>b.onclick=()=>{
+   const i=Number(b.dataset.batchIndex),c=db.collections[i];if(!c)return;
+   const inputs=[...host.querySelectorAll('.bulk-history-amount')].filter(x=>Number(x.dataset.batchIndex)===i);
+   const changes=[];
+   for(const x of inputs){const raw=x.value.trim();if(!/^\d+(?:\.\d{1,2})?$/.test(raw)||!Number.isSafeInteger(cents(raw))){alert(bn?'সঠিক টাকার পরিমাণ লিখুন।':'Enter valid amounts.');return}
+    changes.push({a:c.allocations[Number(x.dataset.allocationIndex)],value:cents(raw)});
+   }
+   const totals=new Map();for(const {a,value} of changes){const r=db.rows.find(x=>x.id===a.id);if(!r){if(value!==a.cents){alert(bn?'মুছে যাওয়া লেনদেন সংশোধন করা যাবে না।':'Cannot edit a deleted transaction.');return}continue}
+    totals.set(r.id,(totals.get(r.id)||0)+value-a.cents);
+   }
+   for(const [id,delta] of totals){const r=db.rows.find(x=>x.id===id);const next=cents(r.collected)+delta;if(next<0||next>Math.max(0,cents(r.qar))){alert(bn?'সংশোধিত আদায় লেনদেনের মোট টাকার বেশি বা শূন্যের কম হতে পারবে না।':'Amount exceeds transaction total or is negative.');return}}
+   if(!confirm(bn?'এই আদায়ের সংশোধন সংরক্ষণ করবেন?':'Save collection changes?'))return;
+   for(const [id,delta] of totals){const r=db.rows.find(x=>x.id===id);r.collected=((cents(r.collected)+delta)/100).toFixed(2)}
+   for(const {a,value} of changes)a.cents=value;
+   db.collections=db.collections.filter(batch=>batch.allocations?.some(a=>a.cents>0));save();render();openBulk();
+  });
+ }
 function openCollection(rowId){
  const r=db.rows.find(x=>x.id===Number(rowId));if(!r)return;const panel=$('collectionDetail'),bn=lang==='bn';panel.classList.remove('hidden');
  const histories=(db.collections||[]).flatMap(c=>(c.allocations||[]).filter(a=>a.id===r.id).map(a=>({c,a})));
@@ -1031,27 +1076,4 @@ html body #nativeMenu #menuPanel-manager #managerSection4.manager-panel-open,
 html body #nativeMenu #menuPanel-manager #managerSection5.manager-panel-open{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important;overflow:visible!important}
 html body #nativeMenu #menuPanel-manager #managerSection3.manager-panel-open #monthArchive{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important}
 }
-</style><script id="main-menu-toggle-close-20261123">
-(function(){
-  function init(){
-    var menu=document.getElementById('nativeMenu');
-    if(!menu)return;
-    var radios=[0,1,2].map(function(i){return document.getElementById('menuRadio'+i)});
-    radios.forEach(function(r){if(r)r.checked=false});
-    menu.querySelectorAll(':scope > label.menu-top-button[for^="menuRadio"]').forEach(function(label){
-      label.addEventListener('click',function(e){
-        var radio=document.getElementById(label.getAttribute('for'));
-        if(!radio)return;
-        var wasOpen=radio.checked;
-        e.preventDefault();
-        radios.forEach(function(r){if(r)r.checked=false});
-        if(!wasOpen)radio.checked=true;
-        radio.dispatchEvent(new Event('change',{bubbles:true}));
-      });
-    });
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
-  else init();
-})();
-</script>
-</body></html>
+</style></body></html>
