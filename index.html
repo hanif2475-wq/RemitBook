@@ -1439,4 +1439,25 @@ html body #ledgerDetailsPanel #menuPanel-ledger .toolbar .ledger-date-row #addTo
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
+
+<style id="three-picker-exact-180x48">
+/* Three matching date/month controls, right aligned in their respective rows. */
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row>label.field,
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#monthFilter),
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#dateFilter){
+ display:grid!important;grid-template-columns:minmax(0,1fr) 180px!important;gap:8px!important;
+ align-items:center!important;width:100%!important;max-width:100%!important;min-width:0!important;
+ box-sizing:border-box!important;padding-left:0!important;padding-right:0!important;
+}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row #workDate,
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field #monthFilter,
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field #dateFilter{
+ grid-column:2!important;grid-row:1!important;justify-self:end!important;
+ width:180px!important;min-width:180px!important;max-width:180px!important;
+ height:48px!important;min-height:48px!important;max-height:48px!important;
+ transform:none!important;position:static!important;box-sizing:border-box!important;
+ margin:0!important;padding:5px 8px!important;overflow:hidden!important;
+}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row #addTop{display:none!important;}
+</style>
 </body></html>
