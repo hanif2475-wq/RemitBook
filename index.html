@@ -1403,4 +1403,40 @@ html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#monthF
 html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#monthFilter){grid-template-columns:minmax(0,1fr) minmax(0,205px)!important}
 @media(max-width:430px){html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#monthFilter){grid-template-columns:minmax(0,1fr) minmax(0,180px)!important}}
 </style>
+
+<style id="unified-three-date-fields-20261123">
+/* Keep the original three inputs and their handlers, only unify their appearance. */
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row{display:block!important;width:100%!important;grid-template-columns:none!important;}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row>label.field,
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#monthFilter),
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#dateFilter){
+ display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,48%)!important;
+ gap:8px!important;align-items:center!important;width:100%!important;max-width:100%!important;
+ box-sizing:border-box!important;min-width:0!important;overflow:visible!important;
+}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row #workDate,
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field #monthFilter,
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field #dateFilter{
+ display:block!important;position:static!important;transform:none!important;grid-column:2!important;grid-row:1!important;
+ width:100%!important;max-width:100%!important;min-width:0!important;height:46px!important;
+ min-height:46px!important;padding:7px 8px!important;margin:0!important;
+ box-sizing:border-box!important;border:1px solid #b9c6d1!important;border-radius:8px!important;
+ background:#fff!important;color:#17496b!important;-webkit-text-fill-color:#17496b!important;
+ opacity:1!important;visibility:visible!important;font-size:14px!important;
+ -webkit-appearance:auto!important;appearance:auto!important;
+}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar .ledger-date-row #addTop{display:none!important;}
+</style>
+<script id="date-calendar-adds-transaction-20261123">
+(function(){
+ function init(){
+  var date=document.getElementById('workDate'),plus=document.getElementById('addTop');
+  if(!date||!plus||date.dataset.calendarAddReady)return;
+  date.dataset.calendarAddReady='1';
+  /* Only a user-confirmed date change adds a row; opening the calendar does not. */
+  date.addEventListener('change',function(){if(date.value)plus.click();});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
 </body></html>
