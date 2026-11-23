@@ -1460,4 +1460,20 @@ html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field #monthFilte
  justify-self:end!important;box-sizing:border-box!important;
 }
 </style>
+<style id="ledger-picker-adjustment-20261124">
+/* Transaction date: extend 40px toward the right (180 -> 220). */
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row #workDate{
+ width:220px!important;min-width:220px!important;max-width:220px!important;
+ justify-self:start!important;
+}
+/* Month selector: extend 8px toward the left (140 -> 148), reduce height 4px (40 -> 36). */
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#monthFilter){
+ grid-template-columns:minmax(0,1fr) 148px!important;
+}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field #monthFilter{
+ width:148px!important;min-width:148px!important;max-width:148px!important;
+ height:36px!important;min-height:36px!important;max-height:36px!important;
+ justify-self:end!important;
+}
+</style>
 </body></html>
