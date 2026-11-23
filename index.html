@@ -1258,16 +1258,7 @@ html body #ledgerDetailsPanel #menuPanel-bulk #bulkOpen{display:block!important;
   }
   var toolbar=document.querySelector('#menuPanel-ledger .toolbar');var work=document.getElementById('workDate');var add=document.getElementById('addTop');
   if(toolbar&&work&&add){var field=work.closest('label');var row=document.createElement('div');row.className='ledger-date-row';toolbar.insertBefore(row,field);row.appendChild(field);row.appendChild(add);add.removeAttribute('data-i18n');add.textContent='+';add.setAttribute('aria-label','Add transaction');add.title='Add transaction'}
-  var month=document.getElementById('monthFilter'),monthLabel=month&&month.closest('label'),monthSel,yearSel;
-  if(month&&monthLabel){
-   var holder=document.createElement('div');holder.className='month-choice';monthSel=document.createElement('select');yearSel=document.createElement('select');
-   monthSel.setAttribute('aria-label','Month');yearSel.setAttribute('aria-label','Year');holder.appendChild(monthSel);holder.appendChild(yearSel);monthLabel.appendChild(holder);
-   for(var i=1;i<=12;i++){var o=document.createElement('option');o.value=String(i).padStart(2,'0');monthSel.appendChild(o)}
-   var currentYear=new Date().getFullYear();for(var y=2000;y<=currentYear+15;y++){var o=document.createElement('option');o.value=String(y);o.textContent=String(y);yearSel.appendChild(o)}
-   function syncFromNative(){var v=month.value||new Date().toISOString().slice(0,7);var parts=v.split('-');if(!Array.from(yearSel.options).some(function(o){return o.value===parts[0]})){var o=document.createElement('option');o.value=parts[0];o.textContent=parts[0];yearSel.appendChild(o)}monthSel.value=parts[1];yearSel.value=parts[0]}
-   function syncToNative(){month.value=yearSel.value+'-'+monthSel.value;month.dispatchEvent(new Event('input',{bubbles:true}));month.dispatchEvent(new Event('change',{bubbles:true}))}
-   monthSel.addEventListener('change',syncToNative);yearSel.addEventListener('change',syncToNative);month.addEventListener('change',syncFromNative);syncFromNative();
-  }
+  var month=document.getElementById('monthFilter'),monthLabel=month&&month.closest('label'),monthSel=null,yearSel=null;
   var sections=Array.from(root.querySelectorAll('.details-section-toggle'));
   var namesBN=['হিসাব পরিচালনা','লেনদেন','আদায়'],namesEN=['Manage accounts','Transactions','Collection'];
   var labelsBN=['🔎 খুঁজুন','🗄️ ব্যাকআপ','📅 মাসভিত্তিক সংরক্ষিত হিসাব','☑️ নিজের পছন্দমতো হিসাব ক্লোজ','🔒 হিসাব ক্লোজ'];
@@ -1393,4 +1384,23 @@ html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#dateFi
 html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field #dateFilter {display:block!important;visibility:visible!important;opacity:1!important;color:#17496b!important;background:#fff!important;border:1px solid #b9c6d1!important;border-radius:7px!important;-webkit-text-fill-color:#17496b!important;appearance:auto!important;-webkit-appearance:auto!important;}
 html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field #dateFilter::-webkit-calendar-picker-indicator {display:block!important;opacity:1!important;}
 }
-</style></body></html>
+</style>
+<style id="single-native-month-picker-20261123">
+/* Use the existing native month input: iOS presents its month/year wheel. */
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#monthFilter) #monthFilter{
+ display:block!important;visibility:visible!important;opacity:1!important;
+ position:static!important;inset:auto!important;transform:none!important;
+ grid-column:2!important;grid-row:1!important;
+ width:100%!important;min-width:0!important;max-width:100%!important;
+ height:46px!important;min-height:46px!important;box-sizing:border-box!important;
+ padding:7px 9px!important;margin:0!important;
+ border:1px solid #b9c6d1!important;border-radius:8px!important;
+ background:#fff!important;color:#17496b!important;
+ font-size:15px!important;font-weight:500!important;
+ -webkit-appearance:auto!important;appearance:auto!important;
+}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#monthFilter) .month-choice{display:none!important}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#monthFilter){grid-template-columns:minmax(0,1fr) minmax(0,205px)!important}
+@media(max-width:430px){html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>label.field:has(#monthFilter){grid-template-columns:minmax(0,1fr) minmax(0,180px)!important}}
+</style>
+</body></html>
