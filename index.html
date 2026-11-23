@@ -472,8 +472,9 @@ function totals(a){
  const cashQ=cash.reduce((v,r)=>v+cents(r.qar),0);
  const creditQ=credit.reduce((v,r)=>v+cents(r.qar),0);
  const creditPaid=credit.reduce((v,r)=>v+Math.min(Math.max(0,cents(r.collected)),Math.max(0,cents(r.qar))),0);
- const collected=cashQ+creditPaid;
- const due=Math.max(0,creditQ-creditPaid);
+ const standalone=(db.collections||[]).filter(c=>c.kind==='standalone'&&(!dateFilter||c.date===dateFilter)&&(!monthFilter||c.date.startsWith(monthFilter))&&!selectedSegment).reduce((v,c)=>v+Math.max(0,Number(c.amountCents)||0),0);
+ const collected=cashQ+creditPaid+standalone;
+ const due=Math.max(0,creditQ-creditPaid-standalone);
  return {q,b,cashQ,creditQ,creditPaid,collected,due};
 }
 function renderSummary(a){
@@ -662,7 +663,7 @@ function openBulk(){
  const panel=$('bulkPanel');panel.classList.remove('hidden');
  const eligible=filtered().filter(r=>r.status==='বাকি'&&Math.max(0,cents(r.qar)-Math.max(0,cents(r.collected)))>0);
  const bn=lang==='bn';
- panel.innerHTML=`<div style="font-weight:800;font-size:18px;margin-bottom:8px">${bn?'একসঙ্গে আদায়':'Bulk collection'}</div><div style="font-size:13px;margin-bottom:9px">${bn?'যেসব বাকি লেনদেনের টাকা পেয়েছেন, সেগুলো নির্বাচন করুন। আংশিক টাকা দিলে নির্বাচিত লেনদেনের ক্রমানুসারে সমন্বয় হবে।':'Select credit transactions. Partial amounts are allocated in displayed order.'}</div>${eligible.map(r=>`<label class="bulk-row"><input type="checkbox" class="bulk-check" value="${r.id}"><span>${esc(r.date)} · #${r.txn} · ${esc(r.name||tr(r.type))} — ${moneyC(Math.max(0,cents(r.qar)-Math.max(0,cents(r.collected))))} QAR</span></label>`).join('')||`<p>${bn?'আদায়ের জন্য কোনো বাকি লেনদেন নেই।':'No outstanding credit transactions.'}</p>`}<div class="bulk-buttons"><button type="button" id="bulkSelectAll">${bn?'সব নির্বাচন':'Select all'}</button><label>${bn?'আদায়ের পরিমাণ (QAR)':'Amount (QAR)'} <input id="bulkAmount" type="number" min="0.01" step="0.01" placeholder="0.00"></label></div><div class="bulk-buttons"><button type="button" id="bulkFull">${bn?'সম্পূর্ণ বাকি আদায়':'Collect full dues'}</button><button type="button" id="bulkPartial">${bn?'লিখিত টাকা আদায়':'Collect entered amount'}</button><button type="button" id="bulkClose">${bn?'বন্ধ':'Close'}</button></div>`;
+ panel.innerHTML=`<div style="font-weight:800;font-size:18px;margin-bottom:8px">${bn?'একসঙ্গে আদায়':'Bulk collection'}</div><div style="font-size:13px;margin-bottom:9px">${bn?'যেসব বাকি লেনদেনের টাকা পেয়েছেন, সেগুলো নির্বাচন করুন। আংশিক টাকা দিলে নির্বাচিত লেনদেনের ক্রমানুসারে সমন্বয় হবে।':'Select credit transactions. Partial amounts are allocated in displayed order.'}</div><label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:700">${bn?'আদায়ের তারিখ':'Collection date'} <input id="bulkCollectionDate" type="date" value="${today()}" style="padding:7px;min-width:0;max-width:190px;border:1px solid #b6c3d0;border-radius:6px"></label>${eligible.map(r=>`<label class="bulk-row><input type="checkbox" class="bulk-check" value="${r.id}"><span>${esc(r.date)} · #${r.txn} · ${esc(r.name||tr(r.type))} — ${moneyC(Math.max(0,cents(r.qar)-Math.max(0,cents(r.collected))))} QAR</span></label>`).join('')||`<p>${bn?'আদায়ের জন্য কোনো বাকি লেনদেন নেই।':'No outstanding credit transactions.'}</p>`}<div class="bulk-buttons"><button type="button" id="bulkSelectAll">${bn?'সব নির্বাচন':'Select all'}</button><label>${bn?'আদায়ের পরিমাণ (QAR)':'Amount (QAR)'} <input id="bulkAmount" type="number" min="0.01" step="0.01" placeholder="0.00"></label></div><div class="bulk-buttons"><button type="button" id="bulkFull">${bn?'সম্পূর্ণ বাকি আদায়':'Collect full dues'}</button><button type="button" id="bulkPartial">${bn?'লিখিত টাকা আদায়':'Collect entered amount'}</button><button type="button" id="bulkClose">${bn?'বন্ধ':'Close'}</button></div>`;
  $('bulkSelectAll').onclick=()=>panel.querySelectorAll('.bulk-check').forEach(c=>c.checked=true);
  $('bulkClose').onclick=()=>panel.classList.add('hidden');
  const collect=full=>{
@@ -677,9 +678,22 @@ function openBulk(){
   if(!confirm((bn?'মোট ':'Collect ')+moneyC(amount)+' QAR'+(bn?' আদায় হিসেবে সংরক্ষণ করবেন?':' for selected transactions?')))return;
   let remaining=amount;const allocations=[];
   for(const r of chosen){const left=Math.max(0,cents(r.qar)-Math.max(0,cents(r.collected)));const applied=Math.min(left,remaining);if(applied){r.collected=((Math.max(0,cents(r.collected))+applied)/100).toFixed(2);allocations.push({id:r.id,cents:applied});remaining-=applied}if(!remaining)break}
-  db.collections.push({id:'c'+Date.now()+'-'+db.collections.length,date:today(),allocations});save();render();openBulk();alert(bn?'আদায় সংরক্ষণ হয়েছে।':'Collection saved.');
+  db.collections.push({id:'c'+Date.now()+'-'+db.collections.length,date:$('bulkCollectionDate').value,allocations});save();render();openBulk();alert(bn?'আদায় সংরক্ষণ হয়েছে।':'Collection saved.');
  };
  $('bulkFull').onclick=()=>collect(true);$('bulkPartial').onclick=()=>collect(false);
+  const one=document.createElement('section');one.style.cssText='margin-top:14px;padding:12px;border:1px solid #b6c3d0;border-radius:8px;background:#fff';
+  one.innerHTML='<b>'+(bn?'এককালীন আদায় (লেনদেন নির্বাচন ছাড়া)':'One-time collection (no transaction selection)')+'</b><p style="font-size:12px;margin:6px 0">'+(bn?'মোট আদায় বাড়বে এবং মোট বাকি কমবে। আলাদা লেনদেনের আদায় পরিবর্তন হবে না।':'Increases summary collected and reduces summary due; individual transactions are unchanged.')+'</p><label>'+(bn?'টাকা (QAR)':'Amount (QAR)')+' <input id="standaloneAmount" type="number" min="0.01" step="0.01" style="width:120px;padding:7px"></label> <button type="button" id="standaloneSave">'+(bn?'এককালীন আদায় সংরক্ষণ':'Save one-time collection')+'</button>';
+  panel.appendChild(one);
+  one.querySelector('#standaloneSave').onclick=()=>{
+    const raw=one.querySelector('#standaloneAmount').value.trim(), date=$('bulkCollectionDate').value;
+    if(!date){alert(bn?'আদায়ের তারিখ নির্বাচন করুন।':'Select a date.');return}
+    if(!/^\d+(?:\.\d{1,2})?$/.test(raw)||cents(raw)<=0){alert(bn?'সঠিক টাকার পরিমাণ লিখুন।':'Enter a valid amount.');return}
+    const totalDue=Math.max(0,db.rows.filter(r=>r.status==='বাকি').reduce((v,r)=>v+Math.max(0,cents(r.qar)-cents(r.collected)),0)-(db.collections||[]).filter(c=>c.kind==='standalone').reduce((v,c)=>v+(c.amountCents||0),0));
+    if(cents(raw)>totalDue){alert(bn?'মোট বাকি টাকার বেশি আদায় করা যাবে না।':'Cannot exceed total outstanding.');return}
+    if(!confirm(bn?'এককালীন আদায় সংরক্ষণ করবেন?':'Save one-time collection?'))return;
+    db.collections.push({id:'s'+Date.now()+'-'+db.collections.length,kind:'standalone',date,amountCents:cents(raw)});
+    save();render();openBulk();
+  };
   renderBulkHistory(panel);
 }
  // Bulk history: edit individual allocations or delete several saved collection batches.
@@ -697,6 +711,15 @@ function openBulk(){
     return '<div style="border:1px solid #cbd5e1;border-radius:7px;padding:10px;margin:8px 0;background:#fff"><label style="display:flex;align-items:center;gap:8px;font-weight:700"><input type="checkbox" class="bulk-history-check" data-batch-index="'+idx+'" style="width:18px;height:18px">'+esc(c.date||'')+' · '+(bn?'আদায়':'Collection')+' '+(batches.length-i)+'</label>'+rows+'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><button type="button" class="bulk-history-save" data-batch-index="'+idx+'">'+(bn?'সংশোধন সংরক্ষণ':'Save changes')+'</button><button type="button" class="bulk-history-delete-one" data-batch-index="'+idx+'">'+(bn?'এই আদায় মুছুন':'Delete batch')+'</button></div></div>';
    }).join('');
   panel.appendChild(host);
+  const singles=(db.collections||[]).map((c,i)=>({c,i})).filter(x=>x.c.kind==='standalone');
+  const singleHost=document.createElement('section');singleHost.style.cssText='margin-top:14px;border-top:1px solid #cbd5e1;padding-top:10px';
+  singleHost.innerHTML='<h3 style="margin:0 0 8px">'+(bn?'এককালীন আদায়ের হিস্ট্রি':'One-time collection history')+'</h3>'+(singles.length?'<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="singleSelectAll">'+(bn?'সব নির্বাচন':'Select all')+'</button><button type="button" id="singleDeleteSelected">'+(bn?'নির্বাচিতগুলো মুছুন':'Delete selected')+'</button></div>':'<p>'+(bn?'এখনো এককালীন আদায় নেই।':'No one-time collections yet.')+'</p>')+singles.slice().reverse().map(({c,i})=>'<div style="border:1px solid #cbd5e1;border-radius:7px;padding:9px;margin:8px 0"><label><input type="checkbox" class="single-check" data-index="'+i+'"> '+(bn?'নির্বাচন':'Select')+'</label> <input type="date" class="single-date" data-index="'+i+'" value="'+esc(c.date||'')+'" style="max-width:145px;padding:5px"> <input type="number" min="0.01" step="0.01" class="single-amount" data-index="'+i+'" value="'+(c.amountCents/100).toFixed(2)+'" style="max-width:100px;padding:5px"> <button type="button" class="single-save" data-index="'+i+'">'+(bn?'সংরক্ষণ':'Save')+'</button> <button type="button" class="single-delete" data-index="'+i+'">'+(bn?'মুছুন':'Delete')+'</button></div>').join('');
+  panel.appendChild(singleHost);
+  function deleteSingles(indices){indices=[...new Set(indices)].filter(i=>db.collections[i]?.kind==='standalone');if(!indices.length)return;if(!confirm(bn?'নির্বাচিত এককালীন আদায় মুছবেন?':'Delete selected one-time collections?'))return;db.collections=db.collections.filter((_,i)=>!indices.includes(i));save();render();openBulk()}
+  singleHost.querySelector('#singleSelectAll')?.addEventListener('click',()=>singleHost.querySelectorAll('.single-check').forEach(x=>x.checked=true));
+  singleHost.querySelector('#singleDeleteSelected')?.addEventListener('click',()=>deleteSingles([...singleHost.querySelectorAll('.single-check:checked')].map(x=>Number(x.dataset.index))));
+  singleHost.querySelectorAll('.single-delete').forEach(b=>b.onclick=()=>deleteSingles([Number(b.dataset.index)]));
+  singleHost.querySelectorAll('.single-save').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.index),c=db.collections[i],raw=singleHost.querySelector('.single-amount[data-index="'+i+'"]')?.value.trim(),date=singleHost.querySelector('.single-date[data-index="'+i+'"]')?.value;if(!c||!date||!/^\d+(?:\.\d{1,2})?$/.test(raw)||cents(raw)<=0){alert(bn?'সঠিক তারিখ ও টাকা দিন।':'Enter a valid date and amount.');return}const available=Math.max(0,db.rows.filter(r=>r.status==='বাকি').reduce((v,r)=>v+Math.max(0,cents(r.qar)-cents(r.collected)),0)-(db.collections||[]).filter(x=>x.kind==='standalone'&&x!==c).reduce((v,x)=>v+(x.amountCents||0),0));if(cents(raw)>available){alert(bn?'মোট বাকি টাকার বেশি হবে।':'Exceeds outstanding balance.');return}c.amountCents=cents(raw);c.date=date;save();render();openBulk()});
   function deleteBatches(indices){
    indices=[...new Set(indices)].filter(i=>Number.isInteger(i)&&db.collections[i]);
    if(!indices.length){alert(bn?'আগে হিস্ট্রি নির্বাচন করুন।':'Select history first.');return}
