@@ -1445,4 +1445,36 @@ html body #ledgerDetailsPanel #nativeMenu #menuPanel-ledger .toolbar .ledger-dat
 }
 </style>
 <script id="remove-obsolete-addtop">(function(){function clean(){var b=document.getElementById('addTop');if(b)b.remove();}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(clean,0)});else setTimeout(clean,0);})();</script>
+<style id="date-fields-exact-180x48-final">
+@media screen {
+html body #ledgerDetailsPanel #nativeMenu #menuPanel-ledger .toolbar > .ledger-date-row,
+html body #ledgerDetailsPanel #nativeMenu #menuPanel-ledger .toolbar > label.field:has(#monthFilter),
+html body #ledgerDetailsPanel #nativeMenu #menuPanel-ledger .toolbar > label.field:has(#dateFilter) {
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ box-sizing:border-box!important;margin:0!important;transform:none!important;
+}
+html body #ledgerDetailsPanel #nativeMenu #menuPanel-ledger .toolbar > .ledger-date-row > label.field,
+html body #ledgerDetailsPanel #nativeMenu #menuPanel-ledger .toolbar > label.field:has(#monthFilter),
+html body #ledgerDetailsPanel #nativeMenu #menuPanel-ledger .toolbar > label.field:has(#dateFilter) {
+ display:grid!important;grid-template-columns:minmax(0,1fr) 180px!important;
+ grid-template-rows:auto!important;column-gap:8px!important;
+ justify-content:stretch!important;justify-items:stretch!important;align-items:center!important;
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ padding:9px 0!important;margin:0!important;transform:none!important;
+}
+html body #ledgerDetailsPanel #nativeMenu #menuPanel-ledger .toolbar > .ledger-date-row > label.field > #workDate,
+html body #ledgerDetailsPanel #nativeMenu #menuPanel-ledger .toolbar > label.field > #monthFilter,
+html body #ledgerDetailsPanel #nativeMenu #menuPanel-ledger .toolbar > label.field > #dateFilter {
+ display:block!important;grid-column:2!important;grid-row:1!important;
+ justify-self:end!important;align-self:center!important;
+ width:180px!important;min-width:180px!important;max-width:180px!important;
+ height:48px!important;min-height:48px!important;max-height:48px!important;
+ box-sizing:border-box!important;margin:0!important;padding:5px 7px!important;
+ position:static!important;left:auto!important;right:auto!important;transform:none!important;
+ border:1px solid #b9c6d1!important;border-radius:8px!important;
+ background:#fff!important;color:#17496b!important;
+ -webkit-text-fill-color:#17496b!important;font-size:14px!important;
+}
+}
+</style>
 </body></html>
