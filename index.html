@@ -1180,4 +1180,118 @@ html body #ledgerDetailsPanel #menuPanel-bulk #bulkOpen{min-height:44px!importan
 @media(max-width:380px){html body #ledgerDetailsPanel #menuPanel-manager .fixed-six-grid{gap:5px!important}}
 @media print{#ledgerDetailsPanel{display:none!important}}
 </style>
+
+<style id="details-accordion-v2">
+html body #ledgerDetailsPanel #nativeMenu.native-details-menu{gap:9px!important}
+html body #ledgerDetailsPanel #nativeMenu>.native-menu-content[hidden]{display:none!important}
+html body #ledgerDetailsPanel #nativeMenu>.native-menu-content{border-radius:0 0 10px 10px!important;border-top:0!important;margin-top:-9px!important}
+html body #ledgerDetailsPanel #nativeMenu>.native-menu-content::before{display:none!important}
+html body #ledgerDetailsPanel .details-section-toggle{width:100%!important;display:flex!important;align-items:center!important;justify-content:space-between!important;text-align:left!important;padding:12px 14px!important;min-height:48px!important;background:#fff!important;border:1px solid #c9d9e6!important;border-radius:10px!important;color:#17496b!important;font-size:15px!important;font-weight:800!important;white-space:normal!important}
+html body #ledgerDetailsPanel .details-section-toggle[aria-expanded="true"]{border-radius:10px 10px 0 0!important;background:#edf5fc!important}
+html body #ledgerDetailsPanel .details-section-toggle .chevron{font-size:19px;line-height:1;transition:transform .15s}
+html body #ledgerDetailsPanel .details-section-toggle[aria-expanded="true"] .chevron{transform:rotate(180deg)}
+</style>
+<script id="details-accordion-behavior-v2">
+(function(){
+ function init(){
+  var menu=document.querySelector('#ledgerDetailsPanel #nativeMenu');if(!menu||menu.dataset.accordionReady)return;
+  menu.dataset.accordionReady='1';
+  [['manager','হিসাব পরিচালনা'],['ledger','লেনদেন'],['bulk','একসঙ্গে আদায়']].forEach(function(entry){
+   var panel=document.getElementById('menuPanel-'+entry[0]);if(!panel)return;
+   var btn=document.createElement('button');btn.type='button';btn.className='details-section-toggle';
+   btn.setAttribute('aria-expanded','false');btn.setAttribute('aria-controls',panel.id);
+   btn.appendChild(document.createTextNode(entry[1]));
+   var arrow=document.createElement('span');arrow.className='chevron';arrow.textContent='⌄';btn.appendChild(arrow);
+   menu.insertBefore(btn,panel);panel.hidden=true;
+   btn.addEventListener('click',function(e){
+    e.stopPropagation();var open=btn.getAttribute('aria-expanded')!=='true';
+    menu.querySelectorAll('.details-section-toggle').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    ['manager','ledger','bulk'].forEach(function(id){var el=document.getElementById('menuPanel-'+id);if(el)el.hidden=true;});
+    panel.hidden=!open;btn.setAttribute('aria-expanded',String(open));
+   });
+  });
+  var main=document.getElementById('ledgerDetailsButton');if(main)main.addEventListener('click',function(){
+   menu.querySelectorAll('.details-section-toggle').forEach(function(b){b.setAttribute('aria-expanded','false');});
+   ['manager','ledger','bulk'].forEach(function(id){var el=document.getElementById('menuPanel-'+id);if(el)el.hidden=true;});
+  });
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<!-- details-layout-final-20261123 -->
+<style id="details-layout-final">
+html body #ledgerDetailsPanel #menuPanel-manager .fixed-six-grid{display:flex!important;flex-direction:column!important;gap:7px!important;border:0!important;background:transparent!important}
+html body #ledgerDetailsPanel #menuPanel-manager .fixed-six-grid .fixed-six-tab{display:flex!important;align-items:center!important;justify-content:flex-start!important;text-align:left!important;width:100%!important;min-height:44px!important;height:auto!important;max-height:none!important;padding:10px 12px!important;border:1px solid #c5d6e3!important;border-radius:8px!important;background:#edf5fc!important;box-sizing:border-box!important;font-size:14px!important}
+html body #ledgerDetailsPanel #menuPanel-manager .fixed-six-grid .account-nested{display:none;flex-direction:column;gap:7px;padding:4px 0 4px 14px}
+html body #ledgerDetailsPanel #menuPanel-manager .fixed-six-grid .account-nested.open{display:flex}
+html body #ledgerDetailsPanel #menuPanel-manager .fixed-six-grid .account-group-toggle{width:100%;text-align:left;border:1px solid #c5d6e3;border-radius:8px;background:#edf5fc;color:#195a91;font-size:14px;font-weight:700;padding:12px;display:flex;justify-content:space-between;align-items:center}
+html body #ledgerDetailsPanel #menuPanel-manager .fixed-six-grid .account-group-toggle[aria-expanded=true]{background:#d8e8f6}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar{display:flex!important;flex-direction:column!important;gap:9px!important;padding:10px!important}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.field,html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row,html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>#showAll{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;grid-column:auto!important;grid-row:auto!important;position:static!important;left:auto!important;margin:0!important}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.field{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;padding:8px!important;min-height:48px!important}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.field>span{flex:1;min-width:0;text-align:left}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.field>input{width:145px!important;max-width:50%!important;min-width:0!important;flex:0 1 145px!important}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row{display:flex!important;align-items:center!important;gap:7px!important}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row>.field{display:flex!important;flex:1!important;align-items:center!important;justify-content:space-between!important;min-width:0!important;gap:7px!important;padding:8px!important}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row>.field>span{flex:1!important}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row>.field>input{width:145px!important;min-width:0!important;max-width:55%!important}
+html body #ledgerDetailsPanel #menuPanel-ledger .toolbar>.ledger-date-row>#addTop{width:46px!important;min-width:46px!important;max-width:46px!important;height:46px!important;min-height:46px!important;position:static!important;margin:0!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:27px!important;line-height:1!important}
+html body #ledgerDetailsPanel #menuPanel-ledger .month-choice{display:flex;gap:5px;flex:0 1 215px;min-width:0;max-width:60%}
+html body #ledgerDetailsPanel #menuPanel-ledger .month-choice select{width:100%;min-width:0;padding:8px 2px;border:1px solid #bdcbd8;border-radius:7px;background:white;color:#17344c;font-size:13px}
+html body #ledgerDetailsPanel #menuPanel-ledger #monthFilter{display:none!important}
+html body #ledgerDetailsPanel #menuPanel-bulk #bulkOpen{display:block!important;text-align:left!important;padding:12px!important}
+</style>
+
+<script id="details-layout-final-script">
+(function(){
+ function init(){
+  var root=document.getElementById('ledgerDetailsPanel');if(!root||root.dataset.finalLayoutReady)return;root.dataset.finalLayoutReady='1';
+  var langEl=document.getElementById('language');function bn(){return !langEl||langEl.value!=='en'}
+  var manager=document.getElementById('menuPanel-manager');var grid=manager&&manager.querySelector('.fixed-six-grid');
+  var nested,group;
+  if(grid){
+   var tabs=Array.from(grid.querySelectorAll('.fixed-six-tab'));
+   if(tabs.length===6){
+    group=document.createElement('button');group.type='button';group.className='account-group-toggle';group.setAttribute('aria-expanded','false');
+    nested=document.createElement('div');nested.className='account-nested';
+    tabs.slice(3).forEach(function(t){nested.appendChild(t)});
+    grid.appendChild(group);grid.appendChild(nested);
+    group.addEventListener('click',function(){var on=group.getAttribute('aria-expanded')!=='true';group.setAttribute('aria-expanded',String(on));nested.classList.toggle('open',on);if(!on){tabs.slice(3).forEach(function(t){t.classList.remove('active')});}});
+   }
+  }
+  var toolbar=document.querySelector('#menuPanel-ledger .toolbar');var work=document.getElementById('workDate');var add=document.getElementById('addTop');
+  if(toolbar&&work&&add){var field=work.closest('label');var row=document.createElement('div');row.className='ledger-date-row';toolbar.insertBefore(row,field);row.appendChild(field);row.appendChild(add);add.removeAttribute('data-i18n');add.textContent='+';add.setAttribute('aria-label','Add transaction');add.title='Add transaction'}
+  var month=document.getElementById('monthFilter'),monthLabel=month&&month.closest('label'),monthSel,yearSel;
+  if(month&&monthLabel){
+   var holder=document.createElement('div');holder.className='month-choice';monthSel=document.createElement('select');yearSel=document.createElement('select');
+   monthSel.setAttribute('aria-label','Month');yearSel.setAttribute('aria-label','Year');holder.appendChild(monthSel);holder.appendChild(yearSel);monthLabel.appendChild(holder);
+   for(var i=1;i<=12;i++){var o=document.createElement('option');o.value=String(i).padStart(2,'0');monthSel.appendChild(o)}
+   var currentYear=new Date().getFullYear();for(var y=2000;y<=currentYear+15;y++){var o=document.createElement('option');o.value=String(y);o.textContent=String(y);yearSel.appendChild(o)}
+   function syncFromNative(){var v=month.value||new Date().toISOString().slice(0,7);var parts=v.split('-');if(!Array.from(yearSel.options).some(function(o){return o.value===parts[0]})){var o=document.createElement('option');o.value=parts[0];o.textContent=parts[0];yearSel.appendChild(o)}monthSel.value=parts[1];yearSel.value=parts[0]}
+   function syncToNative(){month.value=yearSel.value+'-'+monthSel.value;month.dispatchEvent(new Event('input',{bubbles:true}));month.dispatchEvent(new Event('change',{bubbles:true}))}
+   monthSel.addEventListener('change',syncToNative);yearSel.addEventListener('change',syncToNative);month.addEventListener('change',syncFromNative);syncFromNative();
+  }
+  var sections=Array.from(root.querySelectorAll('.details-section-toggle'));
+  var namesBN=['হিসাব পরিচালনা','লেনদেন','আদায়'],namesEN=['Manage accounts','Transactions','Collection'];
+  var labelsBN=['🔎 খুঁজুন','🗄️ ব্যাকআপ','📅 মাসভিত্তিক সংরক্ষিত হিসাব','☑️ নিজের পছন্দমতো হিসাব ক্লোজ','🔒 হিসাব ক্লোজ'];
+  var labelsEN=['🔎 Search','🗄️ Backup','📅 Monthly archived accounts','☑️ Custom account close','🔒 Close account'];
+  var monthsBN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+  var monthsEN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function translate(){
+   var isBn=bn();sections.forEach(function(btn,i){var first=Array.from(btn.childNodes).find(function(n){return n.nodeType===3});if(first)first.textContent=(isBn?namesBN:namesEN)[i]+' ';});
+   if(grid){var t=Array.from(grid.querySelectorAll('.fixed-six-tab'));if(t.length===3&&nested)t=t.concat(Array.from(nested.querySelectorAll('.fixed-six-tab')));[0,1,3,4,5].forEach(function(idx,j){if(t[idx])t[idx].textContent=(isBn?labelsBN:labelsEN)[j]});if(group)group.innerHTML='<span>📒 '+(isBn?'হিসাব':'Accounts')+'</span><span>⌄</span>';}
+   if(work&&work.closest('label')){var sp=work.closest('label').querySelector('span');if(sp)sp.textContent=isBn?'লেনদেনের তারিখ':'Transaction date'}
+   var date=document.getElementById('dateFilter');if(date&&date.closest('label')){var sp=date.closest('label').querySelector('span');if(sp)sp.textContent=isBn?'তারিখ খুঁজুন':'Find date'}
+   if(monthLabel){var sp=monthLabel.querySelector('span');if(sp)sp.textContent=isBn?'মাস নির্বাচন':'Select month'}
+   if(monthSel)Array.from(monthSel.options).forEach(function(o,i){o.textContent=(isBn?monthsBN:monthsEN)[i]});
+   if(yearSel)Array.from(yearSel.options).forEach(function(o){o.textContent=isBn?o.value.replace(/[0-9]/g,function(d){return '০১২৩৪৫৬৭৮৯'[Number(d)]}):o.value});
+   if(add){add.textContent='+';add.title=isBn?'নতুন লেনদেন যোগ করুন':'Add transaction';add.setAttribute('aria-label',add.title)}
+   var bulk=document.getElementById('bulkOpen');if(bulk)bulk.textContent=isBn?'☑ আদায় শুরু করুন':'☑ Start collection';
+  }
+  translate();if(langEl)langEl.addEventListener('change',function(){setTimeout(translate,0)});
+  if(grid){grid.addEventListener('click',function(e){var tab=e.target.closest('.fixed-six-tab');if(!tab)return;grid.querySelectorAll('.fixed-six-tab').forEach(function(t){t.classList.remove('active')});tab.classList.add('active')});}
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
 </body></html>
