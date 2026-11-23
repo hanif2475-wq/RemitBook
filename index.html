@@ -741,6 +741,7 @@ function openBulk(){
     save();render();openBulk();
   };
   renderBulkHistory(panel);
+  organizeCollectionMenu(panel);
 }
  // Bulk history: edit individual allocations or delete several saved collection batches.
  function renderBulkHistory(panel){
@@ -1477,4 +1478,86 @@ html body #ledgerDetailsPanel #nativeMenu #menuPanel-ledger .toolbar > label.fie
 }
 }
 </style>
+
+<style id="collection-four-accordion-style">
+#menuPanel-bulk #bulkOpen{display:none!important}
+#menuPanel-bulk #bulkPanel{display:block!important;margin:0!important;padding:8px!important;border:0!important;background:transparent!important}
+#bulkPanel .collection-accordion{border:1px solid #c8d5e0;border-radius:9px;background:#fff;margin:0 0 9px;overflow:hidden}
+#bulkPanel .collection-accordion>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;min-height:48px;color:#17496b;font-weight:700;font-size:15px;cursor:pointer}
+#bulkPanel .collection-accordion>summary::-webkit-details-marker{display:none}
+#bulkPanel .collection-accordion>summary:after{content:'⌄';font-size:21px;line-height:1}
+#bulkPanel .collection-accordion[open]>summary:after{content:'⌃'}
+#bulkPanel .collection-accordion[open]>summary{background:#edf5fb;border-bottom:1px solid #c8d5e0}
+#bulkPanel .collection-accordion-body{padding:12px;min-width:0;overflow-wrap:anywhere}
+#bulkPanel .collection-accordion-body section{margin-top:0!important;border-top:0!important}
+#bulkPanel .collection-history-png{display:inline-flex;align-items:center;gap:5px;margin:6px 0 4px 6px;padding:6px 9px;min-height:34px}
+@media print{#bulkPanel .collection-history-png{display:none!important}}
+</style>
+<script id="collection-four-accordion-script">
+function organizeCollectionMenu(panel){
+ if(!panel || panel.querySelector('.collection-accordion'))return;
+ const bn=document.documentElement.lang==='bn';
+ const one=panel.querySelector('.bulk-onetime')?.closest('section');
+ const bulkHistory=panel.querySelector('#bulkHistory');
+ const singleHistory=bulkHistory?.nextElementSibling;
+ if(!one||!bulkHistory||!singleHistory)return;
+ const form=document.createElement('div');
+ while(panel.firstChild && panel.firstChild!==one)form.appendChild(panel.firstChild);
+ const standaloneDate=document.createElement('label');standaloneDate.className='bulk-date-field';standaloneDate.textContent=bn?'আদায়ের তারিখ':'Collection date';
+ const standaloneInput=document.createElement('input');standaloneInput.type='date';standaloneInput.value=panel.querySelector('#bulkCollectionDate')?.value||new Date().toISOString().slice(0,10);
+ standaloneInput.addEventListener('change',()=>{const original=panel.querySelector('#bulkCollectionDate');if(original)original.value=standaloneInput.value});
+ standaloneDate.appendChild(standaloneInput);one.querySelector('.bulk-onetime')?.prepend(standaloneDate);
+ const parts=[form,one,bulkHistory,singleHistory];
+ const names=bn?['একসঙ্গে আদায়','এককালীন আদায় (লেনদেন নির্বাচন ছাড়া)','একসঙ্গে আদায়ের হিস্ট্রি','এককালীন আদায়ের হিস্ট্রি']:['Bulk collection','One-time collection (without selecting transactions)','Bulk collection history','One-time collection history'];
+ parts.forEach((part,i)=>{
+  const d=document.createElement('details');d.className='collection-accordion';
+  const summary=document.createElement('summary');summary.textContent=names[i];
+  const body=document.createElement('div');body.className='collection-accordion-body';body.appendChild(part);
+  d.append(summary,body);panel.appendChild(d);
+  d.addEventListener('toggle',()=>{if(d.open)panel.querySelectorAll('.collection-accordion').forEach(other=>{if(other!==d)other.open=false})});
+ });
+ // Preserve collection handlers and their existing date field by keeping their nodes intact.
+ // Each saved history record gets its own PNG export, with a short detail summary.
+ function pngButton(card,collection){
+  const button=document.createElement('button');button.type='button';button.className='collection-history-png';
+  button.innerHTML='<span aria-hidden="true">▧</span> PNG';button.title=bn?'ছবি সংরক্ষণ':'Save PNG';
+  button.addEventListener('click',()=>{
+   const lines=[];
+   const date=collection.date||'—';
+   if(collection.kind==='standalone'){
+    lines.push(bn?'এককালীন আদায়ের হিস্ট্রি':'One-time collection history', (bn?'তারিখ: ':'Date: ')+date,(bn?'আদায়: ':'Collected: ')+((collection.amountCents||0)/100).toFixed(2)+' QAR');
+   }else{
+    const allocations=(collection.allocations||[]).filter(a=>a.cents>0);
+    const total=allocations.reduce((sum,a)=>sum+a.cents,0);
+    lines.push(bn?'একসঙ্গে আদায়ের হিস্ট্রি':'Bulk collection history',(bn?'তারিখ: ':'Date: ')+date,(bn?'মোট আদায়: ':'Total collected: ')+(total/100).toFixed(2)+' QAR',(bn?'লেনদেন: ':'Transactions: ')+allocations.length);
+    allocations.forEach(a=>{
+      const r=db.rows.find(r=>r.id===a.id);
+      lines.push((r?(r.name||r.date||('#'+r.txn)):(bn?'মুছে যাওয়া লেনদেন':'Deleted transaction'))+' — '+(a.cents/100).toFixed(2)+' QAR');
+    });
+   }
+   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+   if(!ctx)return;
+   const width=760,margin=48,lineHeight=37,wrapped=[];
+   ctx.font='23px sans-serif';
+   for(const line of lines){
+    let text='';for(const word of line.split(' ')){
+     const candidate=text?text+' '+word:word;
+     if(ctx.measureText(candidate).width>width-2*margin && text){wrapped.push(text);text=word}else text=candidate;
+    }wrapped.push(text);
+   }
+   canvas.width=width;canvas.height=Math.max(320,margin*2+wrapped.length*lineHeight+45);
+   ctx.fillStyle='#153c5b';ctx.fillRect(0,0,canvas.width,canvas.height);
+   ctx.strokeStyle='#d7b46a';ctx.lineWidth=4;ctx.strokeRect(17,17,width-34,canvas.height-34);
+   ctx.fillStyle='#fff';ctx.textBaseline='top';
+   wrapped.forEach((line,i)=>{ctx.font=i===0?'bold 29px sans-serif':'23px sans-serif';ctx.fillText(line,margin,margin+i*lineHeight)});
+   const a=document.createElement('a');a.download='collection-'+date+'-'+(collection.id||'history')+'.png';a.href=canvas.toDataURL('image/png');document.body.appendChild(a);a.click();a.remove();
+  });card.appendChild(button);
+ }
+ const batches=(db.collections||[]).filter(c=>Array.isArray(c.allocations)&&c.allocations.some(a=>a.cents>0)).slice().reverse();
+ bulkHistory.querySelectorAll('.bulk-history-delete-one').forEach((btn,i)=>{const card=btn.closest('div[style*="border:1px"]');if(card&&batches[i])pngButton(card,batches[i])});
+ const singles=(db.collections||[]).filter(c=>c.kind==='standalone').slice().reverse();
+ singleHistory.querySelectorAll('.single-delete').forEach((btn,i)=>{const card=btn.closest('div[style*="border:1px"]');if(card&&singles[i])pngButton(card,singles[i])});
+}
+if(typeof openBulk==='function')openBulk();
+</script>
 </body></html>
