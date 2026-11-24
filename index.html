@@ -506,7 +506,7 @@ function archiveRender(){
   if(b.dataset.segment){selectedSegment=selectedSegment===b.dataset.segment?'':b.dataset.segment;monthFilter=m;dateFilter='';$('monthFilter').value=m;$('dateFilter').value='';render();return}
   if(b.dataset.deleteWindow){const w=db.windows.find(x=>x.id===b.dataset.deleteWindow&&x.closed);if(!w)return;if(!confirm(bn?'শুধু এই ক্লোজ হিসাবের কপি মুছবেন? চলমান হিসাব অপরিবর্তিত থাকবে।':'Delete only this closed copy? Main ledger stays unchanged.'))return;db.windows=db.windows.filter(x=>x.id!==w.id);db.windows.filter(x=>x.month===w.month).sort((a,b)=>a.index-b.index).forEach((x,i)=>x.index=i+1);selectedSegment='';save();render();return}
     if(b.dataset.closeWindow){const w=db.windows.find(x=>x.id===b.dataset.closeWindow);if(!w)return;const rows=db.rows.filter(r=>monthOf(r.date)===w.month);if(!rows.length){alert(bn?'এই মাসে লেনদেন নেই':'No transactions this month');return}if(!confirm(bn?'এই মাসের হিসাবের আলাদা ক্লোজ কপি তৈরি করবেন? মূল হিসাব অপরিবর্তিত থাকবে।':'Create an independent closed copy of this month?'))return;const index=Math.max(0,...db.windows.filter(x=>x.month===w.month).map(x=>Number(x.index)||0))+1;db.windows.push({id:w.month+'-'+index+'-'+Date.now().toString(36),month:w.month,index,closed:true,createdAt:today(),closedAt:today(),closeKind:'full',snapshotRows:rows.map(r=>({...r}))});save();selectedSegment='';render();return}
-    if(b.dataset.backupMonth){const m=b.dataset.backupMonth;const payload={app:'daily-ledger',version:2,exportedAt:new Date().toISOString(),groups:db.groups.filter(g=>monthOf(g.date)===m),rows:archiveRows(m),windows:db.windows.filter(w=>w.month===m),collections:db.collections.filter(c=>c.allocations?.some(a=>archiveRows(m).some(r=>r.id===a.id))),nextId:db.nextId};downloadJSON(payload,exportBaseName()+'-month-'+m+'.json');return}
+    if(b.dataset.backupMonth){const m=b.dataset.backupMonth;const payload={app:'daily-ledger',version:2,exportedAt:new Date().toISOString(),groups:db.groups.filter(g=>monthOf(g.date)===m),rows:archiveRows(m),windows:db.windows.filter(w=>w.month===m),collections:db.collections.filter(c=>c.kind==='standalone'?monthOf(c.date)===m:c.allocations?.some(a=>archiveRows(m).some(r=>r.id===a.id))),nextId:db.nextId};downloadJSON(payload,exportBaseName()+'-month-'+m+'.json');return}
   if(b.dataset.deleteMonth){const m=b.dataset.deleteMonth;if(!confirm((bn?'স্থায়ীভাবে ':'Permanently delete ')+monthTitle(m)+(bn?' মাসের সব লেনদেন মুছে ফেলবেন? আগে আলাদা JSON ব্যাকআপ নিন।':' and all its transactions? Back up first.')))return;if(!confirm(bn?'শেষবার নিশ্চিত করুন: এই মাসের তথ্য আর ফিরে পাওয়া যাবে না।':'Confirm permanent deletion.'))return;const ids=new Set(archiveRows(m).map(r=>r.id));db.rows=db.rows.filter(r=>!ids.has(r.id));db.windows=db.windows.filter(w=>w.month!==m);db.collections=db.collections.map(c=>({...c,allocations:(c.allocations||[]).filter(a=>!ids.has(a.id))})).filter(c=>c.allocations.length);normalizeAllTransactions();monthFilter=selectedSegment='';$('monthFilter').value='';save();render()}
  };
 }
@@ -725,9 +725,18 @@ $('mergeDone').onclick=()=>{const chosen=pendingBackups.filter(x=>x.checked);if(
  try{const base=JSON.parse(JSON.stringify(db));base.windows=base.windows||[];base.collections=base.collections||[];base.groups=base.groups||[];base.rows=base.rows||[];let next=Math.max(0,...base.rows.map(r=>Number(r.id)||0))+1,added=0,skipped=0;
  // Keep existing rows intact. Remap imported row IDs and collection references.
  const canonical=r=>JSON.stringify(['date','txn','type','mobile','option','qar','bdt','name','status','ref','note','collected'].map(k=>String(r[k]??'')));
- const seen=new Set(base.rows.map(canonical));
- for(const item of chosen){const remap=new Map();for(const r of item.data.rows){const key=canonical(r);if(seen.has(key)){skipped++;continue}seen.add(key);const copy={...r,id:next++,mobile:r.mobile===undefined?(r.option||''):r.mobile};remap.set(r.id,copy.id);delete copy.windowId;base.rows.push(copy);added++}
- for(const c of (item.data.collections||[])){const allocations=(c.allocations||[]).filter(a=>remap.has(a.id)).map(a=>({...a,id:remap.get(a.id)}));if(allocations.length)base.collections.push({...c,id:'merged-'+next+++'-'+Math.random().toString(36).slice(2,7),allocations})}
+ const seen=new Map(base.rows.map(r=>[canonical(r),r.id]));
+ const collectionIds=new Set(base.collections.map(c=>String(c.id)));
+ for(const item of chosen){const remap=new Map();for(const r of item.data.rows){const key=canonical(r);if(seen.has(key)){remap.set(String(r.id),seen.get(key));skipped++;continue}const copy={...r,id:next++,mobile:r.mobile===undefined?(r.option||''):r.mobile};seen.set(key,copy.id);remap.set(String(r.id),copy.id);delete copy.windowId;base.rows.push(copy);added++}
+ for(const c of (item.data.collections||[])){
+  const id=String(c.id||'legacy-'+JSON.stringify(c));
+  if(c.kind==='standalone'){if(!collectionIds.has(id)){base.collections.push({...c,id});collectionIds.add(id)}continue}
+  const allocations=(c.allocations||[]).filter(a=>remap.has(String(a.id))).map(a=>({...a,id:remap.get(String(a.id))}));
+  if(!allocations.length)continue;
+  const existing=base.collections.find(x=>String(x.id)===id);
+  if(existing){for(const a of allocations){if(!(existing.allocations||[]).some(x=>x.id===a.id&&x.cents===a.cents)){(existing.allocations||(existing.allocations=[])).push(a)}}}
+  else{base.collections.push({...c,id,allocations});collectionIds.add(id)}
+ }
  }
  // Assign imported rows to open windows; preserve existing closed sections.
  const existingIds=new Set(db.rows.map(r=>r.id));const openByMonth=new Map();for(const r of base.rows){if(existingIds.has(r.id))continue;const month=monthOf(r.date);let w=openByMonth.get(month);if(!w){w=base.windows.find(x=>x.month===month&&!x.closed);if(!w){const index=Math.max(0,...base.windows.filter(x=>x.month===month).map(x=>Number(x.index)||0))+1;w={id:month+'-'+index+'-merge-'+next,month,index,closed:false,createdAt:r.date};base.windows.push(w)}openByMonth.set(month,w)}r.windowId=w.id}
