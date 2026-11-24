@@ -730,7 +730,7 @@ function openBulk(){
  const bn=lang==='bn';
  panel.innerHTML=`<div style="font-weight:800;font-size:18px;margin-bottom:8px">${bn?'একসঙ্গে আদায়':'Bulk collection'}</div><div style="font-size:13px;margin-bottom:9px">${bn?'যেসব বাকি লেনদেনের টাকা পেয়েছেন, সেগুলো নির্বাচন করুন। আংশিক টাকা দিলে নির্বাচিত লেনদেনের ক্রমানুসারে সমন্বয় হবে।':'Select credit transactions. Partial amounts are allocated in displayed order.'}</div><label class="bulk-date-field">${bn?'আদায়ের তারিখ':'Collection date'} <input id="bulkCollectionDate" type="date" value="${today()}"></label>${eligible.map(r=>`<label class="bulk-row"><input type="checkbox" class="bulk-check" value="${r.id}"><span>${esc(r.date)} · #${r.txn} · ${esc(r.name||tr(r.type))} — ${moneyC(Math.max(0,cents(r.qar)-Math.max(0,cents(r.collected))))} QAR</span></label>`).join('')||`<p>${bn?'আদায়ের জন্য কোনো বাকি লেনদেন নেই।':'No outstanding credit transactions.'}</p>`}<div class="bulk-buttons bulk-selection-tools"><button type="button" id="bulkSelectAll">${bn?'সব নির্বাচন':'Select all'}</button><label>${bn?'আদায়ের পরিমাণ (QAR)':'Amount (QAR)'} <input id="bulkAmount" type="number" min="0.01" step="0.01" placeholder="0.00"></label></div><div class="bulk-buttons"><button type="button" id="bulkFull">${bn?'সম্পূর্ণ বাকি আদায়':'Collect full dues'}</button><button type="button" id="bulkPartial">${bn?'লিখিত টাকা আদায়':'Collect entered amount'}</button><button type="button" id="bulkClose">${bn?'বন্ধ':'Close'}</button></div>`;
  $('bulkSelectAll').onclick=()=>{const checks=[...panel.querySelectorAll('.bulk-check')];const all=checks.length&&checks.every(c=>c.checked);checks.forEach(c=>c.checked=!all);$('bulkSelectAll').textContent=all?(bn?'সব নির্বাচন':'Select all'):(bn?'নির্বাচন বাতিল':'Clear selection')};
- $('bulkClose').onclick=()=>panel.classList.add('hidden');
+ $('bulkClose').onclick=()=>{const d=$('bulkClose').closest('details');if(d)d.open=false;};
  const collect=full=>{
   if(!$('bulkCollectionDate').value){alert(bn?'আদায়ের তারিখ নির্বাচন করুন।':'Choose collection date.');return;}
   const ids=[...panel.querySelectorAll('.bulk-check:checked')].map(c=>Number(c.value));
@@ -877,6 +877,7 @@ function openCollection(rowId){
  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 $('rows').addEventListener('click',e=>{const b=e.target.closest('[data-collection-row]');if(b)openCollection(b.dataset.collectionRow)});
+window.openLedgerCollectionMenu=openBulk;
 $('bulkOpen').onclick=()=>{if(!$('bulkPanel').classList.contains('hidden')){$('bulkPanel').classList.add('hidden')}else openBulk()};
 
 async function makePNG(id){
@@ -1264,7 +1265,7 @@ html body #ledgerDetailsPanel .details-section-toggle[aria-expanded="true"] .che
     menu.querySelectorAll('.details-section-toggle').forEach(function(b){b.setAttribute('aria-expanded','false');});
     ['manager','ledger','bulk'].forEach(function(id){var el=document.getElementById('menuPanel-'+id);if(el)el.hidden=true;});
     panel.hidden=!open;btn.setAttribute('aria-expanded',String(open));
-    if(open && entry[0]==='bulk')openBulk();
+    if(open && entry[0]==='bulk'){window.openLedgerCollectionMenu();}
    });
   });
   var main=document.getElementById('ledgerDetailsButton');if(main)main.addEventListener('click',function(){
