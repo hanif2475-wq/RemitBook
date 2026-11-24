@@ -613,9 +613,32 @@ function validLedgerEdit(r,k,value){
  if(k==='status'&&value==='নগদ'&&r.status==='বাকি'&&((db.collections||[]).some(c=>(c.allocations||[]).some(a=>a.id===r.id&&a.cents>0))||cents(r.collected)>0))return false;
  return true;
 }
+// Match saved customer names without replacing manually entered names.
+const ledgerAutoNames = new WeakMap();
+function ledgerPhoneKey(value){
+ let v=String(value??'').trim().replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c))).replace(/[\s()+-]/g,'');
+ if(/^8801\d{9}$/.test(v))v='0'+v.slice(3);
+ if(/^008801\d{9}$/.test(v))v='0'+v.slice(5);
+ return v;
+}
+function ledgerFillSavedName(r,oldMobile){
+ const previous=ledgerAutoNames.get(r);
+ if(String(r.name??'').trim() && (!previous || r.name!==previous.name))return;
+ const key=ledgerPhoneKey(r.mobile);
+ if(previous && previous.key===key && r.name===previous.name)return;
+ if(!previous && ledgerPhoneKey(oldMobile)===key)return;
+ const candidates=[...db.rows,...(db.windows||[]).filter(w=>w.closed&&Array.isArray(w.snapshotRows)).flatMap(w=>w.snapshotRows)]
+ .filter(x=>String(x.id)!==String(r.id)&&key&&ledgerPhoneKey(x.mobile||x.option)===key&&String(x.name??'').trim())
+ .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||Number(b.txn||0)-Number(a.txn||0)||Number(b.id||0)-Number(a.id||0));
+ if(candidates.length){r.name=String(candidates[0].name);ledgerAutoNames.set(r,{key,name:r.name});}
+ else if(previous){r.name='';ledgerAutoNames.delete(r);}
+ else return;
+ const nameInput=document.querySelector(`#rows [data-id="${Number(r.id)}"][data-key="name"]`);
+ if(nameInput)nameInput.value=r.name;
+}
 function ledgerInputValue(el,k){return k==='qar'||k==='bdt'?el.value.replace(/,/g,''):el.value}
-$('rows').addEventListener('input',e=>{const el=e.target,id=Number(el.dataset.id),k=el.dataset.key;if(!id||!k)return;const r=db.rows.find(x=>Number(x.id)===id);if(!r)return;const value=ledgerInputValue(el,k);if(k==='qar'||k==='bdt'){if(!/^\d*(?:\.\d{0,2})?$/.test(value)){el.value=formatLedgerAmount(r[k]);return}const pos=el.selectionStart??el.value.length;const right=el.value.slice(pos).replace(/,/g,'').length;el.value=formatLedgerAmount(value);let caret=el.value.length;while(right>el.value.slice(caret).replace(/,/g,'').length&&caret>0)caret--;try{el.setSelectionRange(caret,caret)}catch(_){}}if(!validLedgerEdit(r,k,value))return;r[k]=value;if(k==='mobile')r.option=value;save()});
-$('rows').addEventListener('change',e=>{const el=e.target,id=Number(el.dataset.id),k=el.dataset.key;if(!id||!k)return;const r=db.rows.find(x=>Number(x.id)===id);if(!r)return;const value=ledgerInputValue(el,k);if(!validLedgerEdit(r,k,value)){alert(lang==='bn'?'সঠিক পরিমাণ লিখুন। আদায়ের চেয়ে মূল টাকা কমানো বা আদায়ের ইতিহাস থাকা বাকি লেনদেন নগদ করা যাবে না।':'Invalid amount or collection history conflict.');el.value=k==='qar'||k==='bdt'?formatLedgerAmount(r[k]):r[k];return}r[k]=value;if(k==='mobile')r.option=value;save();renderSummary(filtered())});
+$('rows').addEventListener('input',e=>{const el=e.target,id=Number(el.dataset.id),k=el.dataset.key;if(!id||!k)return;const r=db.rows.find(x=>Number(x.id)===id);if(!r)return;const value=ledgerInputValue(el,k);if(k==='qar'||k==='bdt'){if(!/^\d*(?:\.\d{0,2})?$/.test(value)){el.value=formatLedgerAmount(r[k]);return}const pos=el.selectionStart??el.value.length;const right=el.value.slice(pos).replace(/,/g,'').length;el.value=formatLedgerAmount(value);let caret=el.value.length;while(right>el.value.slice(caret).replace(/,/g,'').length&&caret>0)caret--;try{el.setSelectionRange(caret,caret)}catch(_){}}if(!validLedgerEdit(r,k,value))return;const oldMobile=r.mobile;r[k]=value;if(k==='name')ledgerAutoNames.delete(r);if(k==='mobile'){r.option=value;ledgerFillSavedName(r,oldMobile)}save()});
+$('rows').addEventListener('change',e=>{const el=e.target,id=Number(el.dataset.id),k=el.dataset.key;if(!id||!k)return;const r=db.rows.find(x=>Number(x.id)===id);if(!r)return;const value=ledgerInputValue(el,k);if(!validLedgerEdit(r,k,value)){alert(lang==='bn'?'সঠিক পরিমাণ লিখুন। আদায়ের চেয়ে মূল টাকা কমানো বা আদায়ের ইতিহাস থাকা বাকি লেনদেন নগদ করা যাবে না।':'Invalid amount or collection history conflict.');el.value=k==='qar'||k==='bdt'?formatLedgerAmount(r[k]):r[k];return}const oldMobile=r.mobile;r[k]=value;if(k==='name')ledgerAutoNames.delete(r);if(k==='mobile'){r.option=value;ledgerFillSavedName(r,oldMobile)}save();renderSummary(filtered())});
 // Tap-safe deletion: preserve standalone payments and persist before repainting.
 let deletingRow=false;
 function requestLedgerDelete(id){if(deletingRow||!db.rows.some(r=>Number(r.id)===id))return;deletingRow=true;clearTimeout(revealTimer);activeCell=null;document.activeElement?.blur?.();document.body.classList.remove('keyboard-open');
@@ -1390,7 +1413,7 @@ html body #ledgerDetailsPanel #menuPanel-bulk #bulkOpen{display:none!important}
   [transactionSearch,dateSearch].forEach(function(d){d.addEventListener('toggle',function(){if(d.open){[transactionSearch,dateSearch].forEach(function(other){if(other!==d)other.open=false})}})});
   var buttons={};buttons.backup=makeButton('leaf',1,layout);buttons.accounts=makeButton('group','accounts',layout);buttons.all=makeButton('leaf',2,groups.accounts.children);var allDates=document.getElementById('showAll');groups.accounts.children.appendChild(allDates);buttons.monthly=makeButton('leaf',3,groups.accounts.children);buttons.close=makeButton('group','close',layout);buttons.custom=makeButton('leaf',4,groups.close.children);buttons.final=makeButton('leaf',5,groups.close.children);
   var labels={bn:{search:'🔎 খুঁজুন',backup:'🗄️ ব্যাকআপ',accounts:'📒 হিসাব',all:'সব হিসাব',monthly:'মাসভিত্তিক সংরক্ষিত হিসাব',close:'🔒 বন্ধ',custom:'নিজের পছন্দমতো হিসাব বন্ধ',final:'হিসাব বন্ধ',language:'ভাষা'},en:{search:'🔎 Search',backup:'🗄️ Backup',accounts:'📒 Accounts',all:'All accounts',monthly:'Monthly archived accounts',close:'🔒 Close',custom:'Custom account close',final:'Close account',language:'Language'}};
-  function translate(){searchTitle.textContent=isBn()?'⌕  খুঁজুন':'⌕  Search';transactionTitle.textContent=isBn()?'লেনদেন খুঁজুন':'Search transactions';dateTitle.textContent=isBn()?'তারিখ দিয়ে খোঁজা':'Search by date';var d=labels[isBn()?'bn':'en'];Object.keys(buttons).forEach(function(k){buttons[k].querySelector('.manager-name').textContent=d[k]});langButton.innerHTML='<span>'+d.language+'</span><span>⌄</span>';var month=document.querySelector('#menuPanel-ledger .month-choice');if(month){month.style.position='static';} }
+  function translate(){searchTitle.textContent=isBn()?'খুঁজুন':'Search';transactionTitle.textContent=isBn()?'লেনদেন খুঁজুন':'Search transactions';dateTitle.textContent=isBn()?'তারিখ দিয়ে খোঁজা':'Search by date';var d=labels[isBn()?'bn':'en'];Object.keys(buttons).forEach(function(k){buttons[k].querySelector('.manager-name').textContent=d[k]});langButton.innerHTML='<span>'+d.language+'</span><span>⌄</span>';var month=document.querySelector('#menuPanel-ledger .month-choice');if(month){month.style.position='static';} }
   language.addEventListener('change',function(){setTimeout(translate,0)});translate();
   // Reset all subordinate panels whenever a different top-level section is opened.
   root.querySelectorAll('.details-section-toggle').forEach(function(b){b.addEventListener('click',function(){closeLeaf();Object.keys(groups).forEach(function(k){groups[k].children.classList.remove('open');groups[k].button.setAttribute('aria-expanded','false');groups[k].button.querySelector('.manager-arrow').textContent='⌄'})})});
@@ -1711,4 +1734,8 @@ html body #ledgerDetailsPanel #independentSearch #managerSection0{display:block!
 html body #ledgerDetailsPanel #independentSearch details:not([open])>#managerSection0,html body #ledgerDetailsPanel #independentSearch details:not([open])>label,html body #ledgerDetailsPanel #independentSearch:not([open])>.search-body{display:none!important}
 html body #ledgerDetailsPanel #independentSearch label.field{display:flex!important;flex-direction:column!important;gap:6px!important;padding:10px!important;position:static!important;transform:none!important;width:100%!important;box-sizing:border-box!important}
 html body #ledgerDetailsPanel #independentSearch #dateFilter,html body #ledgerDetailsPanel #independentSearch #ledgerSearchInput{display:block!important;position:static!important;opacity:1!important;visibility:visible!important;transform:none!important;width:100%!important;max-width:100%!important;min-height:42px!important;box-sizing:border-box!important;color:#17496b!important;background:#fff!important;border:1px solid #b7c6d2!important;border-radius:7px!important;}
+</style><style id="independent-search-icon-match">
+html body #ledgerDetailsPanel #independentSearchTitle{justify-content:flex-start!important;gap:10px!important;}
+html body #ledgerDetailsPanel #independentSearchTitle::before{content:"";display:block;flex:0 0 22px;width:22px;height:22px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2210.5%22%20cy%3D%2210.5%22%20r%3D%227%22%2F%3E%3Cpath%20d%3D%22m16%2016%205%205%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2210.5%22%20cy%3D%2210.5%22%20r%3D%227%22%2F%3E%3Cpath%20d%3D%22m16%2016%205%205%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat;}
+html body #ledgerDetailsPanel #independentSearchTitle::after{margin-inline-start:auto;flex:none;}
 </style></body></html>
