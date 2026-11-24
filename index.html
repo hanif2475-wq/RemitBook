@@ -1581,7 +1581,7 @@ html body > header{position:sticky!important;top:0!important;z-index:200!importa
 }
 </style>
 <style id="floating-page-jump-style">
-#floatingPageJump{position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:calc(76px + env(safe-area-inset-bottom,0px))!important;transform:translateX(-50%)!important;z-index:1000!important;width:46px!important;height:46px!important;min-height:46px!important;min-width:46px!important;border:1.5px solid #aeb5be!important;border-radius:50%!important;background:#fff!important;color:#17496b!important;display:none!important;align-items:center!important;justify-content:center!important;padding:0!important;box-shadow:0 3px 9px rgba(0,0,0,.18)!important;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+#floatingPageJump{position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:calc(76px + env(safe-area-inset-bottom,0px))!important;transform:translateX(-50%)!important;z-index:99990!important;width:46px!important;height:46px!important;min-height:46px!important;min-width:46px!important;border:1.5px solid #aeb5be!important;border-radius:50%!important;background:#fff!important;color:#17496b!important;display:none!important;align-items:center!important;justify-content:center!important;padding:0!important;box-shadow:0 3px 9px rgba(0,0,0,.18)!important;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:none;}
 #floatingPageJump[data-visible="1"]{display:flex!important}
 #floatingPageJump svg{display:block;flex:none;pointer-events:none;}
 #floatingPageJump:active{background:#f1f3f5!important;box-shadow:0 1px 4px rgba(0,0,0,.14)!important;}
@@ -1590,59 +1590,54 @@ html body > header{position:sticky!important;top:0!important;z-index:200!importa
 <button type="button" id="floatingPageJump" data-visible="0" aria-label="নিচে যান"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16m-6-6 6 6 6-6"/></svg></button>
 <script id="floating-page-jump-script">
 (function(){
- var b=document.getElementById('floatingPageJump'), path=b.querySelector('path');
- var root=document.scrollingElement||document.documentElement;
- function maxY(){return Math.max(0,root.scrollHeight-root.clientHeight,document.body.scrollHeight-window.innerHeight);}
- function y(){return Math.max(0,Math.min(maxY(),window.scrollY||window.pageYOffset||root.scrollTop||0));}
- var last=y(), dir=0, timer=0, ignoreUntil=0, touchX=0,touchY=0, touching=false;
- function hide(){clearTimeout(timer);b.setAttribute('data-visible','0');}
+ const b=document.getElementById('floatingPageJump'), path=b.querySelector('path');
+ let dir=0,timer=0,lock=0,last=0,gesture=null,chosen=0,pressed=false,token=0;
+ const root=()=>document.scrollingElement||document.documentElement;
+ const max=()=>Math.max(0,root().scrollHeight-root().clientHeight);
+ const y=()=>Math.max(0,Math.min(max(),root().scrollTop));
+ const hide=()=>{clearTimeout(timer);b.dataset.visible='0';};
  function show(d){
-  if(maxY()<4)return;
-  dir=d;
-  path.setAttribute('d',d<0?'M12 20V4m-6 6 6-6 6 6':'M12 4v16m-6-6 6 6 6-6');
-  b.setAttribute('aria-label',document.documentElement.lang==='bn'?(d<0?'উপরে যান':'নিচে যান'):(d<0?'Go to top':'Go to bottom'));
-  b.title=b.getAttribute('aria-label');b.setAttribute('data-visible','1');
-  clearTimeout(timer);timer=setTimeout(hide,3200);
+  if(max()<8){hide();return;}
+  if(y()<=2&&d<0)d=1; if(y()>=max()-2&&d>0)d=-1;
+  dir=d;path.setAttribute('d',d<0?'M12 20V4m-6 6 6-6 6 6':'M12 4v16m-6-6 6 6 6-6');
+  b.setAttribute('aria-label',d<0?'উপরে যান':'নিচে যান');b.dataset.visible='1';
+  clearTimeout(timer);timer=setTimeout(()=>{if(!pressed)hide();},4500);
  }
- function scroll(){
-  var now=y(),delta=now-last;
-  if(Date.now()<ignoreUntil){last=now;return;}
-  if(Math.abs(delta)<3)return;
-  last=now;show(delta<0?-1:1);
- }
- window.addEventListener('scroll',scroll,{passive:true});
- document.addEventListener('scroll',scroll,{capture:true,passive:true});
- if(window.visualViewport)window.visualViewport.addEventListener('scroll',scroll,{passive:true});
- document.addEventListener('touchstart',function(e){if(e.touches.length!==1)return;touchX=e.touches[0].clientX;touchY=e.touches[0].clientY;touching=true;ignoreUntil=0;last=y();},{passive:true});
- document.addEventListener('touchmove',function(e){
-  if(!touching||e.touches.length!==1)return;
-  var t=e.touches[0],dy=touchY-t.clientY,dx=touchX-t.clientX;
-  if(Math.abs(dy)<9||Math.abs(dy)<=Math.abs(dx))return;
-  touchX=t.clientX;touchY=t.clientY;
-  var current=y();if((dy>0&&current<maxY()-2)||(dy<0&&current>2))show(dy<0?-1:1);
+ last=y();
+ window.addEventListener('scroll',()=>{
+  const now=y(),delta=now-last;
+  if(Date.now()<lock){last=now;return;}
+  if(Math.abs(delta)<3)return;last=now;
+  if(!pressed)show(chosen||Math.sign(delta));
  },{passive:true});
- function endTouch(){touching=false;}
- document.addEventListener('touchend',endTouch,{passive:true});document.addEventListener('touchcancel',endTouch,{passive:true});
- // iOS Safari: handle the initial touch directly, even during momentum scrolling.
- var lastActivation=0;
- function jump(e){
-  if(e.cancelable)e.preventDefault();
-  e.stopPropagation();
-  if(Date.now()-lastActivation<500||!dir||b.getAttribute('data-visible')!=='1')return;
-  lastActivation=Date.now();
-  var direction=dir;
-  touching=false;ignoreUntil=Date.now()+700;hide();
-  function move(){
-   var target=direction<0?0:maxY();
-   try{window.scrollTo({top:target,left:window.scrollX||0,behavior:'instant'});}catch(err){window.scrollTo(window.scrollX||0,target);}
-   root.scrollTop=target;last=y();
-  }
-  move();
-  requestAnimationFrame(function(){if(Date.now()<ignoreUntil){move();requestAnimationFrame(function(){if(Date.now()<ignoreUntil)move();});}});
+ document.addEventListener('touchstart',e=>{
+  if(b.contains(e.target)||e.touches.length!==1)return;
+  token++;lock=0;chosen=0;last=y();gesture={x:e.touches[0].clientX,y:e.touches[0].clientY};
+ },{passive:true});
+ document.addEventListener('touchmove',e=>{
+  if(!gesture||e.touches.length!==1||pressed)return;
+  const t=e.touches[0],dy=gesture.y-t.clientY,dx=gesture.x-t.clientX;
+  if(Math.abs(dy)<8||Math.abs(dy)<=Math.abs(dx))return;
+  chosen=Math.sign(dy);gesture={x:t.clientX,y:t.clientY};show(chosen);
+ },{passive:true});
+ for(const event of ['touchend','touchcancel'])document.addEventListener(event,()=>{gesture=null;},{passive:true});
+ window.addEventListener('wheel',()=>{chosen=0;token++;lock=0;},{passive:true});
+ function jump(d){
+  if(!d)return;const id=++token;lock=Date.now()+900;chosen=0;pressed=false;gesture=null;hide();
+  function move(){if(id!==token)return;const target=d<0?0:max();window.scrollTo(0,target);root().scrollTop=target;last=y();}
+  move();requestAnimationFrame(move);[40,100,200,350,550,750].forEach(ms=>setTimeout(move,ms));
  }
- b.addEventListener('touchstart',function(e){if(e.touches.length===1)jump(e);},{passive:false});
- b.addEventListener('click',jump);
- window.addEventListener('pageshow',function(){last=y();hide();});
+ let tapDir=0,tx=0,ty=0,lastTap=0;
+ b.addEventListener('touchstart',e=>{
+  if(e.touches.length!==1)return;e.preventDefault();e.stopPropagation();clearTimeout(timer);pressed=true;tapDir=dir;tx=e.touches[0].clientX;ty=e.touches[0].clientY;
+ },{passive:false});
+ b.addEventListener('touchend',e=>{
+  e.preventDefault();e.stopPropagation();const t=e.changedTouches[0];pressed=false;lastTap=Date.now();
+  if(t&&Math.abs(t.clientX-tx)<20&&Math.abs(t.clientY-ty)<20)jump(tapDir);else show(dir);
+ },{passive:false});
+ b.addEventListener('touchcancel',()=>{pressed=false;show(dir);});
+ b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(Date.now()-lastTap>800)jump(dir);});
+ window.addEventListener('pageshow',()=>{last=y();hide();});
 })();
 </script>
 </body></html>
