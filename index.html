@@ -745,39 +745,33 @@ function openBulk(){
 }
  // Bulk history: edit individual allocations or delete several saved collection batches.
  function historyPngButton(card,collection,bn){
+  if(!collection)return;
   const button=document.createElement('button');button.type='button';button.className='collection-history-png';
-  button.innerHTML='🖼 PNG';button.title=bn?'ছবি সংরক্ষণ':'Save PNG';
-  button.addEventListener('click',()=>{
-   const lines=[];
-   const date=collection.date||'—';
-   if(collection.kind==='standalone'){
-    lines.push(bn?'এককালীন আদায়ের হিস্ট্রি':'One-time collection history', (bn?'তারিখ: ':'Date: ')+date,(bn?'আদায়: ':'Collected: ')+((collection.amountCents||0)/100).toFixed(2)+' QAR');
-   }else{
-    const allocations=(collection.allocations||[]).filter(a=>a.cents>0);
-    const total=allocations.reduce((sum,a)=>sum+a.cents,0);
-    lines.push(bn?'একসঙ্গে আদায়ের হিস্ট্রি':'Bulk collection history',(bn?'তারিখ: ':'Date: ')+date,(bn?'মোট আদায়: ':'Total collected: ')+(total/100).toFixed(2)+' QAR',(bn?'লেনদেন: ':'Transactions: ')+allocations.length);
-    allocations.forEach(a=>{
-      const r=db.rows.find(r=>r.id===a.id);
-      lines.push((r?(r.name||r.date||('#'+r.txn)):(bn?'মুছে যাওয়া লেনদেন':'Deleted transaction'))+' — '+(a.cents/100).toFixed(2)+' QAR');
-    });
-   }
-   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
-   if(!ctx)return;
-   const width=760,margin=48,lineHeight=37,wrapped=[];
-   ctx.font='23px sans-serif';
-   for(const line of lines){
-    let text='';for(const word of line.split(' ')){
-     const candidate=text?text+' '+word:word;
-     if(ctx.measureText(candidate).width>width-2*margin && text){wrapped.push(text);text=word}else text=candidate;
-    }wrapped.push(text);
-   }
-   canvas.width=width;canvas.height=Math.max(320,margin*2+wrapped.length*lineHeight+45);
-   ctx.fillStyle='#153c5b';ctx.fillRect(0,0,canvas.width,canvas.height);
-   ctx.strokeStyle='#d7b46a';ctx.lineWidth=4;ctx.strokeRect(17,17,width-34,canvas.height-34);
-   ctx.fillStyle='#fff';ctx.textBaseline='top';
-   wrapped.forEach((line,i)=>{ctx.font=i===0?'bold 29px sans-serif':'23px sans-serif';ctx.fillText(line,margin,margin+i*lineHeight)});
-   const a=document.createElement('a');a.download='collection-'+date+'-'+(collection.id||'history')+'.png';a.href=canvas.toDataURL('image/png');document.body.appendChild(a);a.click();a.remove();
-  });card.appendChild(button);
+  button.innerHTML='<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="2"/><path d="m3 17 6-6 4 4 3-3 5 5"/></svg>';button.title=bn?'ছবি সংরক্ষণ':'Save picture';button.setAttribute('aria-label',button.title);
+  button.onclick=async()=>{
+   let host;button.disabled=true;
+   try{
+    const date=collection.date,monthStart=date.slice(0,7)+'-01';
+    const previous=(db.collections||[]).filter(c=>c!==collection&&c.date>=monthStart&&(c.date<date||(c.date===date&&db.collections.indexOf(c)<db.collections.indexOf(collection)))).sort((a,b)=>a.date.localeCompare(b.date)).pop();
+    const rows=db.rows.filter(r=>r.date>=monthStart&&r.date<=date&&(!previous||r.date>previous.date));
+    const amount=c=>c.kind==='standalone'?Number(c.amountCents)||0:(c.allocations||[]).reduce((v,a)=>v+(Number(a.cents)||0),0);
+    const total=rows.reduce((v,r)=>v+cents(r.qar),0),paid=amount(collection);
+    const cash=rows.filter(r=>r.status==='নগদ').reduce((v,r)=>v+cents(r.qar),0);
+    const nextDay=d=>{const x=new Date(d+'T00:00:00Z');x.setUTCDate(x.getUTCDate()+1);return x.toISOString().slice(0,10)};
+    const start=previous?nextDay(previous.date):monthStart;
+    const lines=[[bn?'আদায়ের তারিখ':'Collection date',date],[bn?'হিসাবের সময়সীমা':'Period',start>date?(bn?'একই দিনে পরবর্তী আদায়':'Additional same-day collection'):start+' — '+date],[bn?'মোট লেনদেন':'Transactions',String(rows.length)],[bn?'মোট টাকা':'Total',moneyC(total)+' QAR'],[bn?'নগদ লেনদেন':'Cash transactions',moneyC(cash)+' QAR'],[bn?'এইবার আদায়':'This collection',moneyC(paid)+' QAR'],[bn?'এই সময়ের অবশিষ্ট':'Period balance',moneyC(Math.max(0,total-cash-paid))+' QAR']];
+    await loadExternalScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    host=document.createElement('div');host.style.cssText='position:fixed;left:-12000px;top:0;width:760px;background:#102b43;color:#fff;font-family:Arial,Noto Sans Bengali,sans-serif';
+    const logo=document.querySelector('header img')?.src||'';
+    host.innerHTML=`<div style="border:7px double #d5b45e;padding:32px 38px;line-height:1.5"><div style="text-align:center;border-bottom:2px solid #d5b45e;padding-bottom:18px"><img src="${logo}" style="width:90px;height:90px;object-fit:contain"><div style="font-size:27px;font-weight:bold;color:#e8ca78">${esc((localStorage.getItem(EXPORT_NAME_KEY)||'').trim()||(bn?'দৈনিক লেনদেন হিসাব':'Daily ledger'))}</div><div style="font-size:24px;color:#e8ca78">${collection.kind==='standalone'?(bn?'এককালীন আদায়ের হিস্ট্রি':'One-time collection'):(bn?'একসঙ্গে আদায়ের হিস্ট্রি':'Bulk collection')}</div></div>${lines.map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;font-size:22px"><span style="color:#e8ca78">${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>`;
+    document.body.appendChild(host);await document.fonts.ready;await addPngWhiteWatermark(host);
+    const canvas=await html2canvas(host,{scale:2,backgroundColor:'#102b43',useCORS:true,logging:false});
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw Error('PNG');
+    const file=new File([blob],exportFilename('collection-'+date+'-'+collection.id,'png'),{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:bn?'আদায়ের ছবি':'Collection picture'});}
+    else{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);}
+   }catch(e){if(e.name!=='AbortError')alert(bn?'ছবি তৈরি বা শেয়ার করা যায়নি।':'Could not create or share picture.');}finally{host?.remove();button.disabled=false;}
+  };card.appendChild(button);
  }
  function renderBulkHistory(panel){
   const bn=lang==='bn', batches=(db.collections||[]).filter(c=>Array.isArray(c.allocations)&&c.allocations.some(a=>a.cents>0));
