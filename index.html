@@ -756,15 +756,20 @@ function openBulk(){
     const rows=db.rows.filter(r=>r.date>=monthStart&&r.date<=date&&(!previous||r.date>previous.date));
     const amount=c=>c.kind==='standalone'?Number(c.amountCents)||0:(c.allocations||[]).reduce((v,a)=>v+(Number(a.cents)||0),0);
     const total=rows.reduce((v,r)=>v+cents(r.qar),0),paid=amount(collection);
-    const cash=rows.filter(r=>r.status==='নগদ').reduce((v,r)=>v+cents(r.qar),0);
+    const cumulativeRows=db.rows.filter(r=>r.date>=monthStart&&r.date<=date);
+    const cumulativeTotal=cumulativeRows.reduce((v,r)=>v+cents(r.qar),0);
+    const earlier=(db.collections||[]).filter(c=>c!==collection&&c.date>=monthStart&&(c.date<date||(c.date===date&&db.collections.indexOf(c)<db.collections.indexOf(collection))));
+    const previousPaid=earlier.reduce((v,c)=>v+amount(c),0);
+    const cash=cumulativeRows.filter(r=>r.status==='নগদ').reduce((v,r)=>v+cents(r.qar),0);
+    const dueBefore=cumulativeTotal-cash-previousPaid;
     const nextDay=d=>{const x=new Date(d+'T00:00:00Z');x.setUTCDate(x.getUTCDate()+1);return x.toISOString().slice(0,10)};
     const start=previous?nextDay(previous.date):monthStart;
     const fmt=d=>new Date(d+'T00:00:00Z').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'});
-    const lines=[[bn?'আদায়ের তারিখ':'Collection date',fmt(date)],[bn?'হিসাবের সময়সীমা':'Period',start>date?(bn?'একই দিনে পরবর্তী আদায়':'Additional same-day collection'):fmt(start)+' — '+fmt(date)],[bn?'মোট লেনদেন':'Transactions',String(rows.length)],[bn?'মোট টাকা':'Total',moneyC(total)+' QAR'],[bn?'আদায়ের আগে বাকি':'Due before collection',moneyC(total-cash)+' QAR'],[bn?'এবার আদায়':'This collection',moneyC(paid)+' QAR'],[bn?'আদায়ের পরে বাকি':'Period balance',moneyC(total-cash-paid)+' QAR']];
+    const lines=[[bn?'আদায়ের তারিখ':'Collection date',fmt(date)],[bn?'হিসাবের সময়সীমা':'Period',start>date?(bn?'একই দিনে পরবর্তী আদায়':'Additional same-day collection'):fmt(start)+' — '+fmt(date)],[bn?'এই সময়ের লেনদেন':'Period transactions',String(rows.length)],[bn?'এই সময়ের মোট টাকা':'Period total',moneyC(total)+' QAR'],[bn?'মাসের মোট টাকা':'Month total to date',moneyC(cumulativeTotal)+' QAR'],[bn?'আগের পরিশোধ':'Previous payments',moneyC(previousPaid+cash)+' QAR'],[bn?'আদায়ের আগে বাকি':'Due before collection',moneyC(dueBefore)+' QAR'],[bn?'এবার আদায়':'This collection',moneyC(paid)+' QAR'],[bn?'আদায়ের পরে বাকি':'Remaining balance',moneyC(dueBefore-paid)+' QAR']];
     await loadExternalScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
     host=document.createElement('div');host.style.cssText='position:fixed;left:-12000px;top:0;width:760px;background:#102b43;color:#fff;font-family:Arial,Noto Sans Bengali,sans-serif';
     const logo=document.querySelector('header img')?.src||'';
-    host.innerHTML=`<div style="border:7px double #d5b45e;padding:32px 38px;line-height:1.5"><div style="display:flex;align-items:center;gap:18px;text-align:left;border-bottom:2px solid #d5b45e;padding-bottom:18px"><img src="${logo}" style="width:90px;height:90px;object-fit:contain;border-radius:18px"><div><div style="font-size:27px;font-weight:bold;color:#e8ca78">${esc((localStorage.getItem(EXPORT_NAME_KEY)||'').trim()||(bn?'দৈনিক লেনদেন হিসাব':'Daily ledger'))}</div><div style="font-size:24px;color:#e8ca78">${collection.kind==='standalone'?(bn?'এককালীন আদায়ের হিস্ট্রি':'One-time collection'):(bn?'একসঙ্গে আদায়ের হিস্ট্রি':'Bulk collection')}</div></div></div>${lines.map(([k,v])=>`<div style="display:flex;justify-content:flex-start;gap:10px;padding:9px 0;font-size:22px;border-bottom:1px solid #ffffff18"><span style="color:#e8ca78">${esc(k)}:</span><b>${esc(v)}</b></div>`).join('')}</div>`;
+    host.innerHTML=`<div style="border:7px double #d5b45e;padding:32px 38px;line-height:1.5"><div style="display:flex;align-items:center;gap:18px;text-align:left;border-bottom:2px solid #d5b45e;padding-bottom:18px"><img src="${logo}" style="width:90px;height:90px;object-fit:contain;border-radius:18px"><div><div style="font-size:25px;font-weight:bold;color:#e8ca78">${bn?'দৈনিক লেনদেন হিসাব':'Daily Transaction Ledger'}</div><div style="font-size:27px;font-weight:bold;color:#e8ca78">${esc((localStorage.getItem(EXPORT_NAME_KEY)||'').trim()||(bn?'দৈনিক লেনদেন হিসাব':'Daily ledger'))}</div><div style="font-size:24px;color:#e8ca78">${collection.kind==='standalone'?(bn?'এককালীন আদায়ের হিস্ট্রি':'One-time collection'):(bn?'একসঙ্গে আদায়ের হিস্ট্রি':'Bulk collection')}</div></div></div>${lines.map(([k,v])=>`<div style="display:flex;justify-content:flex-start;gap:10px;padding:9px 0;font-size:22px;border-bottom:1px solid #ffffff18"><span style="color:#e8ca78">${esc(k)}:</span><b>${esc(v)}</b></div>`).join('')}</div>`;
     document.body.appendChild(host);await document.fonts.ready;
     const canvas=await html2canvas(host,{scale:2,backgroundColor:'#102b43',useCORS:true,logging:false});
     const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw Error('PNG');
@@ -1553,4 +1558,19 @@ function organizeCollectionMenu(panel){
 
 }
 </script>
-<style>#bulkPanel .collection-history-png{border:0!important;background:transparent!important;color:#1769aa!important;padding:3px!important;width:34px!important;min-width:34px!important;justify-content:center!important}</style></body></html>
+<style>#bulkPanel .collection-history-png{border:0!important;background:transparent!important;color:#1769aa!important;padding:3px!important;width:34px!important;min-width:34px!important;justify-content:center!important}</style><style id="persistent-home-header">
+@media screen {
+html,body{overflow-x:clip!important;overflow-y:visible!important;}
+html body > header{position:sticky!important;top:0!important;z-index:200!important;background:#17496b!important;}
+}
+</style>
+<style id="floating-page-jump-style">
+#floatingPageJump{position:fixed!important;right:max(10px,env(safe-area-inset-right))!important;top:58vh!important;z-index:190!important;width:40px!important;height:40px!important;min-height:40px!important;border:0!important;border-radius:0!important;background:transparent!important;color:#17496b!important;display:flex;align-items:center;justify-content:center;padding:0!important;box-shadow:none!important;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+#floatingPageJump[hidden],body.keyboard-open #floatingPageJump{display:none!important}
+@media print{#floatingPageJump{display:none!important}}
+</style>
+<button type="button" id="floatingPageJump" hidden aria-label="নিচে যান"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16m-6-6 6 6 6-6"/></svg></button>
+<script id="floating-page-jump-script">
+(()=>{const b=document.getElementById('floatingPageJump'),path=b.querySelector('path');let up=false;function update(){const root=document.scrollingElement||document.documentElement;const max=Math.max(0,root.scrollHeight-root.clientHeight);up=root.scrollTop>Math.min(80,max/2);b.hidden=max<1;path.setAttribute('d',up?'M12 20V4m-6 6 6-6 6 6':'M12 4v16m-6-6 6 6 6-6');const bn=document.documentElement.lang==='bn';b.setAttribute('aria-label',up?(bn?'উপরে যান':'Go to top'):(bn?'নিচে যান':'Go to bottom'));b.title=b.getAttribute('aria-label');}b.addEventListener('click',()=>{const root=document.scrollingElement||document.documentElement;window.scrollTo(0,up?0:root.scrollHeight);update();});window.addEventListener('scroll',update,{passive:true});window.addEventListener('resize',update);if(window.ResizeObserver)new ResizeObserver(update).observe(document.body);update();})();
+</script>
+</body></html>
