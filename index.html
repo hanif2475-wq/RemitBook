@@ -1642,8 +1642,32 @@ html body > header{position:sticky!important;top:0!important;z-index:200!importa
 </script>
 <style id="persistent-home-footer">
 @media screen {
- html body .bottom,html body.keyboard-open .bottom{position:fixed!important;bottom:0!important;left:0!important;right:0!important;display:grid!important;visibility:visible!important;opacity:1!important;z-index:201!important;}
- body.keyboard-open .addbar{padding-bottom:100px!important;}
+ html body .bottom{position:fixed!important;bottom:0!important;left:0!important;right:0!important;display:grid!important;visibility:visible!important;opacity:1!important;z-index:201!important;}
+ html body.footer-keyboard-hidden .bottom{display:none!important;visibility:hidden!important;pointer-events:none!important;}
+ body.footer-keyboard-hidden .addbar{padding-bottom:16px!important;}
 }
 </style>
+<script id="footer-keyboard-visibility">
+(function(){
+ const vv=window.visualViewport;
+ let fullHeight=Math.max(window.innerHeight,vv?vv.height:0);
+ let width=window.innerWidth;
+ function update(){
+   if(Math.abs(window.innerWidth-width)>80){width=window.innerWidth;fullHeight=Math.max(window.innerHeight,vv?vv.height:0);}
+   const el=document.activeElement;
+   const typing=!!(el && el.matches('textarea,[contenteditable="true"],input:not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"])') && !el.readOnly && !el.disabled);
+   const visible=vv?vv.height*vv.scale:window.innerHeight;
+   if(!typing)fullHeight=Math.max(fullHeight,window.innerHeight,visible);
+   const reduced=Math.max(fullHeight,window.innerHeight)-visible>100;
+   document.body.classList.toggle('footer-keyboard-hidden',reduced && (typing || document.body.classList.contains('footer-keyboard-hidden')));
+ }
+ function refresh(){update();[100,300,600].forEach(ms=>setTimeout(update,ms));}
+ if(vv){vv.addEventListener('resize',update);vv.addEventListener('scroll',update);}
+ window.addEventListener('resize',update);
+ window.addEventListener('pageshow',refresh);
+ document.addEventListener('focusin',refresh);
+ document.addEventListener('focusout',refresh);
+ update();
+})();
+</script>
 </body></html>
