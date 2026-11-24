@@ -1554,10 +1554,9 @@ function organizeCollectionMenu(panel){
   });card.appendChild(button);
  }
  const batches=(db.collections||[]).filter(c=>Array.isArray(c.allocations)&&c.allocations.some(a=>a.cents>0)).slice().reverse();
- bulkHistory.querySelectorAll('.bulk-history-delete-one').forEach((btn,i)=>{const card=btn.closest('div[style*="border:1px"]');if(card&&batches[i])pngButton(card,batches[i])});
+ bulkHistory.querySelectorAll('.bulk-history-delete-one').forEach((btn,i)=>{const idx=Number(btn.dataset.batchIndex);const item=db.collections[idx]||batches[i];if(item)pngButton(btn.parentElement,item)});
  const singles=(db.collections||[]).filter(c=>c.kind==='standalone').slice().reverse();
- singleHistory.querySelectorAll('.single-delete').forEach((btn,i)=>{const card=btn.closest('div[style*="border:1px"]');if(card&&singles[i])pngButton(card,singles[i])});
+ singleHistory.querySelectorAll('.single-delete').forEach((btn,i)=>{const idx=Number(btn.dataset.index);const item=db.collections[idx]||singles[i];if(item)pngButton(btn.parentElement,item)});
 }
-if(typeof openBulk==='function')openBulk();
 </script>
 </body></html>
